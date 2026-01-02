@@ -1,0 +1,20 @@
+/* Login Page Logo */
+.login-logo img {
+  max-width: 150px;
+  max-height: 150px;
+  width: auto;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+/* Sidebar Logo */
+.brand-link .brand-image {
+  max-height: 35px;
+  width: auto;
+}
+
+/* Ensure container doesn't overflow */
+.login-box,
+.register-box {
+  width: 400px;
+}

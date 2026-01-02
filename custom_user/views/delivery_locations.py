@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from custom_user.pagination import CustomPageNumberPagination
+from custom_user.permissions import IsSuperAdmin, IsUser
 from custom_user.serializers import (
     AddressSerializer,
     AddressCreateSerializer,
@@ -17,7 +18,7 @@ from custom_user.models import Address
 
 class AddressListView(ListAPIView):
     queryset = Address.objects.all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
     serializer_class = AddressSerializer
     pagination_class = CustomPageNumberPagination
 
@@ -37,7 +38,7 @@ class AddressListView(ListAPIView):
         return super().get(request, *args, **kwargs)
 
 class AddressCreateView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
 
     @extend_schema(
         request=AddressCreateSerializer,
@@ -73,7 +74,7 @@ class AddressCreateView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 class AddressDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
 
     def get_object(self, address_id):
         try:
@@ -177,7 +178,7 @@ class AddressDetailView(APIView):
 
 
 class AddressSetDefaultView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
     serializer_class = AddressSerializer
 
     @extend_schema(

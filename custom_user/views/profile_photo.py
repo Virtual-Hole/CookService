@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
+from custom_user.permissions import IsSuperAdmin, IsUser
 from custom_user.serializers import (
     ProfilePhotoSerializer,
 )
@@ -13,7 +14,7 @@ from custom_user.serializers import (
 User = get_user_model()
 
 class ProfilePhotoUpdateView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
     parser_classes = [MultiPartParser, FormParser]
     serializer_class = ProfilePhotoSerializer
 

@@ -9,6 +9,7 @@ urlpatterns = [
     path('register/', UserRegistrationView.as_view(), name='user-register'),
     path('activation/send/', SendActivationCodeView.as_view(), name='send-activation-code'),
     path('verify/', VerifyCodeUniversalView.as_view(), name='verify-activation-code'),
+    path('logout/', LogoutView.as_view(), name='user-logout'),
     path('login/', UserLoginView.as_view(), name='user-login'),
     path("me/update_photo/", ProfilePhotoUpdateView.as_view(), name='update-photo'),
     path('me/notification/', NotificationSettingsView.as_view(), name='update_notification'),

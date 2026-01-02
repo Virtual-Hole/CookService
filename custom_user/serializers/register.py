@@ -23,6 +23,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             phone_number=validated_data.get('phone_number'),
             full_name=validated_data.get('full_name', ''),
+            role=User.RoleChoices.USER,
             is_active=False
         )
         return user

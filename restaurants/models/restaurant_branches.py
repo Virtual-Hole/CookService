@@ -1,7 +1,9 @@
 from django.db import models
-from django.contrib.auth.hashers import check_password, make_password
 from django.core.exceptions import ValidationError
+from django.contrib.auth import get_user_model
 from .restaurants import Restaurants, phone_regex
+
+User = get_user_model()
 
 class RestaurantBranches(models.Model):
     STATE_CHOICES = [
@@ -20,13 +22,12 @@ class RestaurantBranches(models.Model):
     ]
 
     restaurant = models.ForeignKey(Restaurants, on_delete=models.CASCADE, related_name='branches')
+    admins = models.ManyToManyField(User, related_name='branch_admin', blank=True)
     name = models.CharField(max_length=255, db_index=True)
-    banner = models.CharField(max_length=255, null=True, blank=True)
     latitude = models.FloatField()
     longitude = models.FloatField()
     address = models.TextField()
     email = models.EmailField()
-    password = models.CharField(max_length=255)
     phone = models.CharField(max_length=13, validators=[phone_regex], null=True, blank=True)
     start_time = models.TimeField(null=True, blank=True)
     close_time = models.TimeField(null=True, blank=True)
@@ -42,11 +43,6 @@ class RestaurantBranches(models.Model):
         verbose_name_plural = "Restaurant Branches"
         ordering = ['name', 'restaurant', 'state', 'status']
 
-    def set_password(self, raw_password):
-        self.password = make_password(raw_password)
-
-    def check_password(self, raw_password):
-        return check_password(raw_password, self.password)
 
     def clean(self):
         if self.start_time and self.close_time:

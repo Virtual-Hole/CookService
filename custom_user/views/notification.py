@@ -4,10 +4,11 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+from custom_user.permissions import IsSuperAdmin, IsUser
 from custom_user.serializers import NotificationSettingsSerializer, ErrorResponseSerializer, NotificationSettingsResponseSerializer
 
 class NotificationSettingsView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
     serializer_class = NotificationSettingsSerializer
 
     @extend_schema(

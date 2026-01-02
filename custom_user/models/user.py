@@ -22,6 +22,12 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
+    class RoleChoices(models.TextChoices):
+        SUPER_ADMIN = 'super_admin', 'super_admin'
+        RESTAURANT_ADMIN = 'restaurant_admin', 'restaurant_admin'
+        BRANCH_ADMIN = 'branch_admin', 'branch_admin'
+        USER = 'user', 'user'
+
     email = models.EmailField(unique=True, null=False)
     phone_number = models.CharField(max_length=15, null=True)
     full_name = models.CharField(max_length=30, null=True, blank=True)
@@ -34,6 +40,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     )
     notification = models.BooleanField(default=False)
     promotional_notification = models.BooleanField(default=False)
+    role = models.CharField(max_length=50, choices=RoleChoices, default=RoleChoices.SUPER_ADMIN)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 

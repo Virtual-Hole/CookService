@@ -1,0 +1,23 @@
+{% extends "admin/logout.html" %}
+
+{% block extrastyle %}
+<style>
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #374151 !important;
+}
+
+#container, .login-container {
+    background-color: transparent !important;
+}
+
+.card, .logout-container {
+    background-color: #1f2937 !important;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    color: #f3f4f6 !important;
+}
+</style>
+{% endblock %}

@@ -3,18 +3,19 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema
+
 from custom_user.models import Card
 from custom_user.pagination import CustomPageNumberPagination
 from custom_user.serializers import CardSerializer, CardCreateSerializer, CardUpdateSerializer, ErrorResponseSerializer
-
+from custom_user.permissions import IsSuperAdmin, IsUser
 
 
 class CardListView(ListAPIView):
     queryset = Card.objects.all()
     serializer_class = CardSerializer
     pagination_class = CustomPageNumberPagination
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
 
     @extend_schema(
         responses={
@@ -33,7 +34,7 @@ class CardListView(ListAPIView):
 
 
 class CardCreateView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
 
     @extend_schema(
         request=CardCreateSerializer,
@@ -78,7 +79,7 @@ class CardCreateView(APIView):
 
 
 class CardDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
 
     def get_object(self, uid):
         try:
@@ -182,7 +183,7 @@ class CardDetailView(APIView):
 
 
 class CardSetDefaultView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
 
     @extend_schema(
         responses={

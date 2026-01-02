@@ -25,13 +25,16 @@ class NotificationSettingsResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
 
+
 class ProfilePhotoSerializer(serializers.Serializer):
     profile_photo = serializers.ImageField()
+
 
 class ErrorResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     error = serializers.CharField()
     errorStatus = serializers.CharField()
+
 
 class VerifyCodeUniversalSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True, help_text="User email")
@@ -67,3 +70,7 @@ class VerifyCodeUniversalResponseSerializer(serializers.Serializer):
     # Faqat register uchun
     access = serializers.CharField(required=False, help_text="JWT Access Token (faqat register)")
     refresh = serializers.CharField(required=False, help_text="JWT Refresh Token (faqat register)")
+
+
+class LogoutSerializer(serializers.Serializer):
+    refresh_token = serializers.CharField(help_text='refresh_token for blacklisting')
