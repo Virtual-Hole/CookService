@@ -1,10 +1,12 @@
-from django import forms
-from django.contrib import admin
-from django.db import models
-from django.db.models import Q
+# restaurants/admin.py (Restaurant Admin site uchun)
 
+from django.contrib import admin
+from django.utils.html import format_html
+from django.db.models import Q
+from django import forms
 from custom_user.models import CustomUser
 from restaurants.models import Restaurants, RestaurantBranches
+from foods.models import FoodCategory, Food, FoodMenuBranchCollection, FoodMenuBranch
 
 
 class CustomRestaurantAdminSite(admin.AdminSite):
@@ -25,10 +27,29 @@ class CustomRestaurantAdminSite(admin.AdminSite):
 custom_restaurant_admin_site = CustomRestaurantAdminSite(name='restaurant_admin')
 
 
+# =====================================================
+# HELPER: O'z restaurant'larini olish
+# =====================================================
+def get_my_restaurants(request):
+    """Request user'ning restaurant'larini qaytaradi"""
+    if request.user.role == 'restaurant_admin':
+        return request.user.managed_restaurants.all()
+    return Restaurants.objects.none()
+
+
+def get_my_branches(request):
+    """Request user'ning branch'larini qaytaradi"""
+    my_restaurants = get_my_restaurants(request)
+    return RestaurantBranches.objects.filter(restaurant__in=my_restaurants)
+
+
+# =====================================================
+# 1. BRANCH ADMIN USER MANAGEMENT
+# =====================================================
 class BranchAdminUserForm(forms.ModelForm):
     class Meta:
         model = CustomUser
-        fields = ('email', 'full_name', 'phone_number', 'profile_photo', 'password', 'managed_branches', 'is_active')
+        fields = ('email', 'full_name', 'phone_number', 'password', 'profile_photo', 'managed_branches', 'is_active')
 
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request', None)
@@ -49,29 +70,32 @@ class BranchAdminUserForm(forms.ModelForm):
             raise forms.ValidationError('Kamida bitta branch tanlash majburiy!')
         return branches
 
-    def clean(self):
-        cleaned_data = super().clean()
-
-        if self.request and self.request.user.role == 'restaurant_admin':
-            branches = cleaned_data.get('managed_branches')
-            if not branches:
-                raise forms.ValidationError('Branch tanlash majburiy!')
-
-        return cleaned_data
-
 
 @admin.register(CustomUser, site=custom_restaurant_admin_site)
 class RestaurantAdminUserAdmin(admin.ModelAdmin):
     form = BranchAdminUserForm
-    list_display = ('email', 'full_name', 'get_branches', 'is_active')
+    list_display = ('email', 'full_name', 'get_branches', 'role', 'is_active')
     list_filter = ('is_active',)
+    search_fields = ('email', 'full_name', 'phone_number')
 
-    fields = ('email', 'full_name', 'phone_number', 'password', 'profile_photo', 'managed_branches', 'is_active')
-    filter_horizontal = ('managed_branches',)
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('email', 'full_name', 'phone_number', 'username', 'password', 'is_active')
+        }),
+        ('Branch Management', {
+            'fields': ('managed_branches',)
+        }),
+        ('Permissions', {
+            'fields': ('groups', 'user_permissions'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    filter_horizontal = ('managed_branches', 'groups', 'user_permissions')
 
     def get_branches(self, obj):
         branches = obj.managed_branches.all()
-        return ", ".join([b.name for b in branches]) if branches else "-"
+        return ", ".join([b.name for b in branches[:3]]) if branches else "-"
 
     get_branches.short_description = 'Branches'
 
@@ -83,9 +107,7 @@ class RestaurantAdminUserAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.role == 'restaurant_admin':
-            my_restaurants = request.user.managed_restaurants.all()
-            my_branches = RestaurantBranches.objects.filter(restaurant__in=my_restaurants)
-
+            my_branches = get_my_branches(request)
             return qs.filter(
                 Q(role='branch_admin', managed_branches__in=my_branches) |
                 Q(pk=request.user.pk)
@@ -97,14 +119,7 @@ class RestaurantAdminUserAdmin(admin.ModelAdmin):
             return ('role', 'managed_restaurants', 'managed_branches')
         return ()
 
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "managed_branches" and request.user.role == 'restaurant_admin':
-            my_restaurants = request.user.managed_restaurants.all()
-            kwargs["queryset"] = RestaurantBranches.objects.filter(restaurant__in=my_restaurants)
-        return super().formfield_for_manytomany(db_field, request, **kwargs)
-
     def save_model(self, request, obj, form, change):
-
         if change and obj.pk == request.user.pk:
             if 'password' in form.changed_data:
                 obj.set_password(obj.password)
@@ -119,51 +134,30 @@ class RestaurantAdminUserAdmin(admin.ModelAdmin):
             obj.set_password(obj.password)
 
         obj.role = 'branch_admin'
-
         super().save_model(request, obj, form, change)
-
         obj.managed_restaurants.clear()
-
-    def has_add_permission(self, request):
-        return request.user.role == 'restaurant_admin'
-
-    def has_change_permission(self, request, obj=None):
-        if obj:
-            if obj.pk == request.user.pk:
-                return True
-
-            if request.user.role == 'restaurant_admin':
-                my_restaurants = request.user.managed_restaurants.all()
-                user_branches = obj.managed_branches.all()
-                return user_branches.filter(restaurant__in=my_restaurants).exists()
-        return True
 
     def has_delete_permission(self, request, obj=None):
         if obj and obj.pk == request.user.pk:
             return False
-
-        if obj and request.user.role == 'restaurant_admin':
-            my_restaurants = request.user.managed_restaurants.all()
-            user_branches = obj.managed_branches.all()
-            return user_branches.filter(restaurant__in=my_restaurants).exists()
-        return True
-
-    def has_view_permission(self, request, obj=None):
-        if obj:
-            if obj.pk == request.user.pk:
-                return True
-
-            if request.user.role == 'restaurant_admin':
-                my_restaurants = request.user.managed_restaurants.all()
-                user_branches = obj.managed_branches.all()
-                return user_branches.filter(restaurant__in=my_restaurants).exists()
-        return True
+        return super().has_delete_permission(request, obj)
 
 
+# =====================================================
+# 2. RESTAURANT (Read-only)
+# =====================================================
 @admin.register(Restaurants, site=custom_restaurant_admin_site)
-class RestaurantAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'phone')
-    exclude = ('admins',)
+class RestaurantAdminRestaurantAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'phone', 'get_branches_count')
+    search_fields = ('name', 'email')
+
+    fields = ('name', 'email', 'phone')
+
+    def get_branches_count(self, obj):
+        count = obj.branches.count()
+        return format_html('<b>{}</b> branches', count)
+
+    get_branches_count.short_description = 'Branches'
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -178,6 +172,9 @@ class RestaurantAdmin(admin.ModelAdmin):
         return False
 
 
+# =====================================================
+# 3. BRANCHES
+# =====================================================
 class RestaurantBranchForm(forms.ModelForm):
     class Meta:
         model = RestaurantBranches
@@ -199,7 +196,17 @@ class RestaurantBranchForm(forms.ModelForm):
 @admin.register(RestaurantBranches, site=custom_restaurant_admin_site)
 class RestaurantAdminBranchesAdmin(admin.ModelAdmin):
     form = RestaurantBranchForm
-    list_display = ('name', 'restaurant', 'address', 'status')
+    list_display = ('name', 'restaurant', 'address', 'state', 'status', 'get_categories_count')
+    list_filter = ('status', 'state')
+    search_fields = ('name', 'address')
+
+    fields = ('name', 'address', 'state', 'status')
+
+    def get_categories_count(self, obj):
+        count = obj.food_categories.count()
+        return format_html('<b>{}</b> categories', count)
+
+    get_categories_count.short_description = 'Categories'
 
     def get_form(self, request, obj=None, **kwargs):
         FormClass = super().get_form(request, obj, **kwargs)
@@ -225,136 +232,159 @@ class RestaurantAdminBranchesAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         if not change and request.user.role == 'restaurant_admin':
             if not obj.restaurant:
-                my_restaurants = request.user.managed_restaurants.all()
+                my_restaurants = get_my_restaurants(request)
                 if my_restaurants.exists():
                     obj.restaurant = my_restaurants.first()
         super().save_model(request, obj, form, change)
 
-    def has_change_permission(self, request, obj=None):
-        if obj and request.user.role == 'restaurant_admin':
-            return request.user in obj.restaurant.admins.all()
-        return True
 
-    def has_delete_permission(self, request, obj=None):
-        if obj and request.user.role == 'restaurant_admin':
-            return request.user in obj.restaurant.admins.all()
-        return True
+# =====================================================
+# 4. FOOD CATEGORIES
+# =====================================================
+@admin.register(FoodCategory, site=custom_restaurant_admin_site)
+class RestaurantAdminFoodCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'branch', 'get_foods_count', 'created_at')
+    list_filter = ('branch',)
+    search_fields = ('name', 'branch__name')
 
-# # Restaurant Admin o'z kategoriyalarini boshqaradi
-# @admin.register(Category, site=custom_restaurant_admin_site)
-# class RestaurantAdminCategoryAdmin(admin.ModelAdmin):
-#     list_display = ('name', 'restaurant')
-#
-#     def get_queryset(self, request):
-#         qs = super().get_queryset(request)
-#         if request.user.role == 'restaurant_admin':
-#             return qs.filter(restaurant__admins=request.user)
-#         return qs
-#
-#     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-#         if db_field.name == "restaurant" and request.user.role == 'restaurant_admin':
-#             kwargs["queryset"] = Restaurants.objects.filter(admins=request.user)
-#         return super().formfield_for_foreignkey(db_field, request, **kwargs)
-#
-#     def has_change_permission(self, request, obj=None):
-#         if obj and request.user.role == 'restaurant_admin':
-#             return request.user in obj.restaurant.admins.all()
-#         return True
-#
-#     def has_delete_permission(self, request, obj=None):
-#         if obj and request.user.role == 'restaurant_admin':
-#             return request.user in obj.restaurant.admins.all()
-#         return True
-#
-#
-# # Restaurant Admin barcha branch'laridagi ovqatlarni ko'radi
-# @admin.register(Food, site=custom_restaurant_admin_site)
-# class RestaurantAdminFoodAdmin(admin.ModelAdmin):
-#     list_display = ('name', 'branch', 'category', 'price')
-#     list_filter = ('branch', 'category')
-#
-#     def get_queryset(self, request):
-#         qs = super().get_queryset(request)
-#         if request.user.role == 'restaurant_admin':
-#             my_restaurants = request.user.managed_restaurants.all()
-#             return qs.filter(branch__restaurant__in=my_restaurants)
-#         return qs
-#
-#     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-#         if request.user.role == 'restaurant_admin':
-#             my_restaurants = request.user.managed_restaurants.all()
-#             if db_field.name == "branch":
-#                 kwargs["queryset"] = RestaurantBranches.objects.filter(restaurant__in=my_restaurants)
-#             elif db_field.name == "category":
-#                 kwargs["queryset"] = Category.objects.filter(restaurant__in=my_restaurants)
-#         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+    fields = ('branch', 'name')
 
-class CustomBranchAdminSite(admin.AdminSite):
-    site_header = "Branch Admin"
-    site_title = "Branch Admin"
-    index_title = "Branch Dashboard"
+    def get_foods_count(self, obj):
+        count = obj.foods.count()
+        return format_html('<b>{}</b> foods', count)
 
-    def has_permission(self, request):
-        return request.user.is_active and request.user.is_authenticated
-
-    def index(self, request, extra_context=None):
-        if not (hasattr(request.user, 'role') and request.user.role == 'branch_admin'):
-            from django.contrib.auth.views import redirect_to_login
-            return redirect_to_login(request.get_full_path(), self.login_url)
-        return super().index(request, extra_context)
-
-
-custom_branch_admin_site = CustomBranchAdminSite(name='branch_admin')
-
-
-@admin.register(RestaurantBranches, site=custom_branch_admin_site)
-class BranchAdminBranchesAdmin(admin.ModelAdmin):
-    list_display = ('name', 'restaurant', 'address', 'status')
-    readonly_fields = ('restaurant', 'name', 'address', 'latitude', 'longitude', )
+    get_foods_count.short_description = 'Foods'
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.role == 'branch_admin':
-            return qs.filter(admins=request.user)
+        if request.user.role == 'restaurant_admin':
+            my_branches = get_my_branches(request)
+            return qs.filter(branch__in=my_branches)
         return qs
 
-    def has_add_permission(self, request):
-        return False
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "branch" and request.user.role == 'restaurant_admin':
+            kwargs["queryset"] = get_my_branches(request)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
-    def has_delete_permission(self, request, obj=None):
-        return False
+
+# =====================================================
+# 5. FOODS
+# =====================================================
+@admin.register(Food, site=custom_restaurant_admin_site)
+class RestaurantAdminFoodAdmin(admin.ModelAdmin):
+    list_display = ('name', 'category', 'get_branch', 'price', 'get_discount_info', 'get_image_preview')
+    list_filter = ('category__branch', 'category', 'discount_active')
+    search_fields = ('name', 'description')
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('category', 'name', 'description', 'image')
+        }),
+        ('Pricing', {
+            'fields': ('price', 'discount_active', 'discount_percent')
+        }),
+    )
+
+    def get_branch(self, obj):
+        return obj.category.branch.name
+
+    get_branch.short_description = 'Branch'
+
+    def get_discount_info(self, obj):
+        if obj.discount_active and obj.discount_percent > 0:
+            return format_html(
+                '<span style="color: red; font-weight: bold;">-{}% (${:.2f})</span>',
+                obj.discount_percent,
+                obj.discounted_price
+            )
+        return '-'
+
+    get_discount_info.short_description = 'Discount'
+
+    def get_image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" width="50" height="50" style="object-fit: cover; border-radius: 5px;" />',
+                               obj.image.url)
+        return '-'
+
+    get_image_preview.short_description = 'Image'
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.role == 'restaurant_admin':
+            my_branches = get_my_branches(request)
+            return qs.filter(category__branch__in=my_branches)
+        return qs
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "category" and request.user.role == 'restaurant_admin':
+            my_branches = get_my_branches(request)
+            kwargs["queryset"] = FoodCategory.objects.filter(branch__in=my_branches)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
-# # Branch Admin faqat o'z branch'idagi ovqatlarni boshqaradi
-# @admin.register(Food, site=custom_branch_admin_site)
-# class BranchAdminFoodAdmin(admin.ModelAdmin):
-#     list_display = ('name', 'category', 'price', 'branch')
-#     list_filter = ('category',)
-#
-#     def get_queryset(self, request):
-#         qs = super().get_queryset(request)
-#         if request.user.role == 'branch_admin':
-#             my_branches = request.user.managed_branches.all()
-#             return qs.filter(branch__in=my_branches)
-#         return qs
-#
-#     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-#         if request.user.role == 'branch_admin':
-#             my_branches = request.user.managed_branches.all()
-#             if db_field.name == "branch":
-#                 kwargs["queryset"] = my_branches
-#             elif db_field.name == "category":
-#                 # Faqat o'z restaurant'ining kategoriyalari
-#                 my_restaurant_ids = my_branches.values_list('restaurant_id', flat=True)
-#                 kwargs["queryset"] = Category.objects.filter(restaurant_id__in=my_restaurant_ids)
-#         return super().formfield_for_foreignkey(db_field, request, **kwargs)
-#
-#     def has_change_permission(self, request, obj=None):
-#         if obj and request.user.role == 'branch_admin':
-#             return obj.branch in request.user.managed_branches.all()
-#         return True
-#
-#     def has_delete_permission(self, request, obj=None):
-#         if obj and request.user.role == 'branch_admin':
-#             return obj.branch in request.user.managed_branches.all()
-#         return True
+# =====================================================
+# 6. MENU COLLECTIONS
+# =====================================================
+@admin.register(FoodMenuBranchCollection, site=custom_restaurant_admin_site)
+class RestaurantAdminMenuCollectionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'branch', 'is_active', 'get_foods_count', 'created_at')
+    list_filter = ('is_active', 'branch')
+    search_fields = ('name', 'description')
+
+    fields = ('branch', 'name', 'description', 'is_active')
+
+    def get_foods_count(self, obj):
+        count = obj.food_items.count()
+        return format_html('<b>{}</b> foods', count)
+
+    get_foods_count.short_description = 'Foods'
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.role == 'restaurant_admin':
+            my_branches = get_my_branches(request)
+            return qs.filter(branch__in=my_branches)
+        return qs
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "branch" and request.user.role == 'restaurant_admin':
+            kwargs["queryset"] = get_my_branches(request)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+# =====================================================
+# 7. FOOD MENU BRANCH
+# =====================================================
+@admin.register(FoodMenuBranch, site=custom_restaurant_admin_site)
+class RestaurantAdminFoodMenuBranchAdmin(admin.ModelAdmin):
+    list_display = ('food', 'collection', 'get_branch', 'is_available', 'added_at')
+    list_filter = ('is_available', 'collection__branch', 'collection')
+    search_fields = ('food__name', 'collection__name')
+
+    fields = ('collection', 'food', 'is_available')
+
+    def get_branch(self, obj):
+        return obj.collection.branch.name
+
+    get_branch.short_description = 'Branch'
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.role == 'restaurant_admin':
+            my_branches = get_my_branches(request)
+            return qs.filter(collection__branch__in=my_branches)
+        return qs
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if request.user.role == 'restaurant_admin':
+            my_branches = get_my_branches(request)
+
+            if db_field.name == "collection":
+                kwargs["queryset"] = FoodMenuBranchCollection.objects.filter(branch__in=my_branches)
+
+            elif db_field.name == "food":
+                kwargs["queryset"] = Food.objects.filter(category__branch__in=my_branches)
+
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)

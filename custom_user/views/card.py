@@ -184,11 +184,18 @@ class CardDetailView(APIView):
 
 class CardSetDefaultView(APIView):
     permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
+    serializer_class = CardSerializer
 
     @extend_schema(
         responses={
-            200: CardSerializer,
-            404: ErrorResponseSerializer,
+            200: OpenApiResponse(
+                response=CardSerializer,
+                description='Karta muvaffaqiyatli default qilindi'
+            ),
+            404: OpenApiResponse(
+                response=ErrorResponseSerializer,
+                description='Karta topilmadi'
+            ),
         },
         tags=['Cards'],
         summary='Asosiy karta qilish',

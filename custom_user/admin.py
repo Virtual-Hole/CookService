@@ -1,7 +1,9 @@
 from django.contrib import admin
 from django.contrib.admin import AdminSite
+from django.utils.html import format_html
 
 from custom_user.models import *
+from foods.models import *
 from restaurants.models import *
 
 
@@ -55,12 +57,168 @@ class DeviceAdmin(admin.ModelAdmin):
 
 
 @admin.register(Restaurants, site=custom_super_admin_site)
-class RestaurantAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'phone')
+class SuperAdminRestaurantAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'phone', 'get_admins_count', 'get_branches_count', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('name', 'email', 'phone')
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'email', 'phone')
+        }),
+    )
+
+    def get_admins_count(self, obj):
+        count = obj.admins.count()
+        return format_html('<b>{}</b> admins', count)
+
+    get_admins_count.short_description = 'Admins'
+
+    def get_branches_count(self, obj):
+        count = obj.branches.count()
+        return format_html('<b>{}</b> branches', count)
+
+    get_branches_count.short_description = 'Branches'
 
 
 @admin.register(RestaurantBranches, site=custom_super_admin_site)
-class RestaurantBranchesAdmin(admin.ModelAdmin):
-    list_display = ('name', 'restaurant', 'address', 'state', 'status')
+class SuperAdminBranchesAdmin(admin.ModelAdmin):
+    list_display = ('name', 'restaurant', 'address', 'state', 'status', 'get_categories_count', 'get_collections_count')
+    list_filter = ('status', 'state', 'restaurant')
+    search_fields = ('name', 'address')
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('restaurant', 'name', 'address', 'state')
+        }),
+        ('Status', {
+            'fields': ('status',)
+        }),
+    )
+
+    def get_categories_count(self, obj):
+        count = obj.food_categories.count()
+        return format_html('<b>{}</b> categories', count)
+
+    get_categories_count.short_description = 'Categories'
+
+    def get_collections_count(self, obj):
+        count = obj.menu_collections.count()
+        return format_html('<b>{}</b> menus', count)
+
+    get_collections_count.short_description = 'Menu Collections'
+
+
+@admin.register(FoodCategory, site=custom_super_admin_site)
+class SuperAdminFoodCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'branch', 'get_restaurant', 'get_foods_count', 'created_at')
+    list_filter = ('branch__restaurant', 'branch')
+    search_fields = ('name', 'branch__name', 'branch__restaurant__name')
+
+    fieldsets = (
+        ('Category Information', {
+            'fields': ('branch', 'name')
+        }),
+    )
+
+    def get_restaurant(self, obj):
+        return obj.branch.restaurant.name
+
+    get_restaurant.short_description = 'Restaurant'
+
+    def get_foods_count(self, obj):
+        count = obj.foods.count()
+        return format_html('<b>{}</b> foods', count)
+
+    get_foods_count.short_description = 'Foods'
+
+
+@admin.register(Food, site=custom_super_admin_site)
+class SuperAdminFoodAdmin(admin.ModelAdmin):
+    list_display = ('name', 'category', 'get_branch', 'price', 'get_discount_info', 'get_image_preview', 'created_at')
+    list_filter = ('category__branch__restaurant', 'category__branch', 'category', 'discount_active')
+    search_fields = ('name', 'description', 'category__name')
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('category', 'name', 'description', 'image')
+        }),
+        ('Pricing', {
+            'fields': ('price', 'discount_active', 'discount_percent')
+        }),
+    )
+
+    readonly_fields = ('created_at', 'updated_at')
+
+    def get_branch(self, obj):
+        return obj.category.branch.name
+
+    get_branch.short_description = 'Branch'
+
+    def get_discount_info(self, obj):
+        if obj.discount_active and obj.discount_percent > 0:
+            return format_html(
+                '<span style="color: red; font-weight: bold;">-{}% (${:.2f})</span>',
+                obj.discount_percent,
+                obj.discounted_price
+            )
+        return '-'
+
+    get_discount_info.short_description = 'Discount'
+
+    def get_image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" width="50" height="50" style="object-fit: cover; border-radius: 5px;" />',
+                               obj.image.url)
+        return '-'
+
+    get_image_preview.short_description = 'Image'
+
+
+@admin.register(FoodMenuBranchCollection, site=custom_super_admin_site)
+class SuperAdminMenuCollectionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'branch', 'get_restaurant', 'is_active', 'get_foods_count', 'created_at')
+    list_filter = ('is_active', 'branch__restaurant', 'branch')
+    search_fields = ('name', 'description', 'branch__name')
+
+    fieldsets = (
+        ('Collection Information', {
+            'fields': ('branch', 'name', 'description', 'is_active')
+        }),
+    )
+
+    def get_restaurant(self, obj):
+        return obj.branch.restaurant.name
+
+    get_restaurant.short_description = 'Restaurant'
+
+    def get_foods_count(self, obj):
+        count = obj.food_items.count()
+        return format_html('<b>{}</b> foods', count)
+
+    get_foods_count.short_description = 'Foods in Menu'
+
+
+@admin.register(FoodMenuBranch, site=custom_super_admin_site)
+class SuperAdminFoodMenuBranchAdmin(admin.ModelAdmin):
+    list_display = ('food', 'collection', 'get_branch', 'is_available', 'added_at')
+    list_filter = ('is_available', 'collection__branch__restaurant', 'collection__branch', 'collection')
+    search_fields = ('food__name', 'collection__name')
+
+    fieldsets = (
+        ('Menu Item', {
+            'fields': ('collection', 'food', 'is_available')
+        }),
+    )
+
+    def get_branch(self, obj):
+        return obj.collection.branch.name
+
+    get_branch.short_description = 'Branch'
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "food":
+            pass
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 

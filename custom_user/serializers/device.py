@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 from django.contrib.auth import get_user_model
 from custom_user.models import Device
 from custom_user.utils import get_device_from_token
@@ -14,6 +16,7 @@ class DeviceSerializer(serializers.ModelSerializer):
         fields = ('uid', 'device_name', 'device_hardware', 'location_city', 'last_online', 'is_active', 'me', 'login_data')
         read_only_fields = ('uid', 'last_used')
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_me(self, obj):
         request = self.context.get('request')
 

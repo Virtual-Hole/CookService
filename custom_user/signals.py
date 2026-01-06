@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.dispatch import receiver
 
 from restaurants.models import RestaurantBranches, Restaurants
+from foods.models import *
 
 User = get_user_model()
 
@@ -32,7 +33,11 @@ def assign_restaurant_admin_permissions(user_pk):
         models = [
             User,
             RestaurantBranches,
-            Restaurants
+            Restaurants,
+            Food,
+            FoodCategory,
+            FoodMenuBranch,
+            FoodMenuBranchCollection,
         ]
 
         permissions_to_add = []
@@ -71,24 +76,44 @@ def assign_branch_admin_permissions(user_pk):
 
         models = [
             RestaurantBranches,
+            Food,
+            FoodCategory,
+            FoodMenuBranch,
+            FoodMenuBranchCollection,
         ]
 
         permissions_to_add = []
 
         for model in models:
             try:
-                content_type = ContentType.objects.get_for_model(model)
+                if model == RestaurantBranches:
+                    content_type = ContentType.objects.get_for_model(model)
 
-                perms = Permission.objects.filter(
-                    content_type=content_type,
-                    codename__in=[
-                        f'view_{model._meta.model_name}',
-                        f'change_{model._meta.model_name}',
-                    ]
-                )
+                    perms = Permission.objects.filter(
+                        content_type=content_type,
+                        codename__in=[
+                            f'view_{model._meta.model_name}',
+                            f'change_{model._meta.model_name}',
+                        ]
+                    )
 
-                permissions_to_add.extend(perms)
-                print(f"✅ Added {perms.count()} permissions for {model.__name__}")
+                    permissions_to_add.extend(perms)
+                    print(f"✅ Added {perms.count()} permissions for {model.__name__}")
+                else:
+                    content_type = ContentType.objects.get_for_model(model)
+
+                    perms = Permission.objects.filter(
+                        content_type=content_type,
+                        codename__in=[
+                            f'view_{model._meta.model_name}',
+                            f'add_{model._meta.model_name}',
+                            f'delete_{model._meta.model_name}',
+                            f'change_{model._meta.model_name}',
+                        ]
+                    )
+
+                    permissions_to_add.extend(perms)
+                    print(f"✅ Added {perms.count()} permissions for {model.__name__}")
 
             except Exception as e:
                 print(f"❌ Error with {model.__name__}: {e}")

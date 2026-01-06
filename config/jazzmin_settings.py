@@ -59,6 +59,11 @@ JAZZMIN_SETTINGS = {
         "restaurants.Restaurants": "fas fa-utensils",
         "restaurants.RestaurantBranches": "fas fa-map-marked-alt",
 
+        "foods.FoodCategory": "fas fa-list-alt",
+        "foods.Food": "fas fa-hamburger",
+        "foods.FoodMenuBranchCollection": "fas fa-book-open",
+        "foods.FoodMenuBranch": "fas fa-clipboard-list",
+
         "custom_user.Card": "fas fa-credit-card",
         "custom_user.Address": "fas fa-map-marker-alt",
         "custom_user.Device": "fas fa-mobile-alt",
