@@ -1,5 +1,8 @@
 from django import forms
 from django.contrib import admin
+from django.db import models
+from django.db.models import Q
+
 from custom_user.models import CustomUser
 from restaurants.models import Restaurants, RestaurantBranches
 
@@ -82,11 +85,17 @@ class RestaurantAdminUserAdmin(admin.ModelAdmin):
         if request.user.role == 'restaurant_admin':
             my_restaurants = request.user.managed_restaurants.all()
             my_branches = RestaurantBranches.objects.filter(restaurant__in=my_restaurants)
+
             return qs.filter(
-                role='branch_admin',
-                managed_branches__in=my_branches
+                Q(role='branch_admin', managed_branches__in=my_branches) |
+                Q(pk=request.user.pk)
             ).distinct()
         return qs
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.pk == request.user.pk:
+            return ('role', 'managed_restaurants', 'managed_branches')
+        return ()
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         if db_field.name == "managed_branches" and request.user.role == 'restaurant_admin':
@@ -95,6 +104,13 @@ class RestaurantAdminUserAdmin(admin.ModelAdmin):
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 
     def save_model(self, request, obj, form, change):
+
+        if change and obj.pk == request.user.pk:
+            if 'password' in form.changed_data:
+                obj.set_password(obj.password)
+            super().save_model(request, obj, form, change)
+            return
+
         if not change:
             obj.set_password(obj.password)
             obj.role = 'branch_admin'
@@ -105,19 +121,27 @@ class RestaurantAdminUserAdmin(admin.ModelAdmin):
         obj.role = 'branch_admin'
 
         super().save_model(request, obj, form, change)
+
         obj.managed_restaurants.clear()
 
     def has_add_permission(self, request):
         return request.user.role == 'restaurant_admin'
 
     def has_change_permission(self, request, obj=None):
-        if obj and request.user.role == 'restaurant_admin':
-            my_restaurants = request.user.managed_restaurants.all()
-            user_branches = obj.managed_branches.all()
-            return user_branches.filter(restaurant__in=my_restaurants).exists()
+        if obj:
+            if obj.pk == request.user.pk:
+                return True
+
+            if request.user.role == 'restaurant_admin':
+                my_restaurants = request.user.managed_restaurants.all()
+                user_branches = obj.managed_branches.all()
+                return user_branches.filter(restaurant__in=my_restaurants).exists()
         return True
 
     def has_delete_permission(self, request, obj=None):
+        if obj and obj.pk == request.user.pk:
+            return False
+
         if obj and request.user.role == 'restaurant_admin':
             my_restaurants = request.user.managed_restaurants.all()
             user_branches = obj.managed_branches.all()
@@ -125,10 +149,14 @@ class RestaurantAdminUserAdmin(admin.ModelAdmin):
         return True
 
     def has_view_permission(self, request, obj=None):
-        if obj and request.user.role == 'restaurant_admin':
-            my_restaurants = request.user.managed_restaurants.all()
-            user_branches = obj.managed_branches.all()
-            return user_branches.filter(restaurant__in=my_restaurants).exists()
+        if obj:
+            if obj.pk == request.user.pk:
+                return True
+
+            if request.user.role == 'restaurant_admin':
+                my_restaurants = request.user.managed_restaurants.all()
+                user_branches = obj.managed_branches.all()
+                return user_branches.filter(restaurant__in=my_restaurants).exists()
         return True
 
 
