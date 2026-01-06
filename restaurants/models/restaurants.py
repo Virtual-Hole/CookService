@@ -11,7 +11,6 @@ phone_regex = RegexValidator(
 
 class Restaurants(models.Model):
     name = models.CharField(max_length=255, db_index=True)
-    admins = models.ManyToManyField(User, related_name='restaurant_admin', blank=True)
     logo = models.ImageField(upload_to='restaurant_logos/', null=True, blank=True)
     phone = models.CharField(max_length=13, validators=[phone_regex])
     email = models.EmailField(max_length=50, unique=True, null=True, blank=True)

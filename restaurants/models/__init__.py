@@ -1,2 +1,5 @@
-from .restaurants import *
-from .restaurant_branches import *
+from .restaurants import Restaurants
+from .restaurant_branches import RestaurantBranches
+
+
+__all__ = ['Restaurants', 'RestaurantBranches']

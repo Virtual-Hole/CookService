@@ -8,7 +8,7 @@ __pycache__/
 
 *.pem
 
-migrations/
+custom_user/migrations/
 
 # Distribution / packaging
 .Python

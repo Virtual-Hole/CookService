@@ -1,9 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.contrib.auth import get_user_model
 from .restaurants import Restaurants, phone_regex
 
-User = get_user_model()
 
 class RestaurantBranches(models.Model):
     STATE_CHOICES = [
@@ -22,7 +20,6 @@ class RestaurantBranches(models.Model):
     ]
 
     restaurant = models.ForeignKey(Restaurants, on_delete=models.CASCADE, related_name='branches')
-    admins = models.ManyToManyField(User, related_name='branch_admin', blank=True)
     name = models.CharField(max_length=255, db_index=True)
     latitude = models.FloatField()
     longitude = models.FloatField()

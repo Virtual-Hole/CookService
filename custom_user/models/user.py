@@ -1,3 +1,4 @@
+from django.contrib.auth.hashers import make_password
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
@@ -44,6 +45,18 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
+    managed_restaurants = models.ManyToManyField(
+        'restaurants.Restaurants',
+        related_name='admins',
+        blank=True
+    )
+
+    managed_branches = models.ManyToManyField(
+        'restaurants.RestaurantBranches',
+        related_name='admins',
+        blank=True
+    )
+
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
@@ -51,5 +64,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+    def set_password(self, raw_password):
+        self.password = make_password(raw_password)
+
+    class Meta:
+        verbose_name = "Admin"
+        verbose_name_plural = "Admins"
 
 

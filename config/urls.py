@@ -1,11 +1,15 @@
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
+from custom_user.admin import custom_super_admin_site
+from restaurants.admin import custom_restaurant_admin_site, custom_branch_admin_site
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('super_admin/', custom_super_admin_site.urls),
+    path('restaurant_admin/', custom_restaurant_admin_site.urls),
+    path('branch_admin/', custom_branch_admin_site.urls),
 
     path('api/auth/', include('djoser.urls.jwt')),
     path('api/user/', include('custom_user.urls')),

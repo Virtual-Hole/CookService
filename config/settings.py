@@ -1,7 +1,5 @@
 import os
 from pathlib import Path
-
-from django.conf.global_settings import STATICFILES_DIRS
 from dotenv import load_dotenv
 
 from .jazzmin_settings import *
@@ -59,6 +57,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     'whitenoise.middleware.WhiteNoiseMiddleware',
+
+    'custom_user.middleware.RoleBasedRedirectMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
