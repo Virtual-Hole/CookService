@@ -40,17 +40,17 @@ class UserRegistrationView(APIView):
         description='Yangi user yaratish va email ga aktivatsiya kodi yuborish'
     )
     def post(self, request):
-        email = request.data.get('email')
+        phone_number = request.data.get('phone_number')
         ip_address = get_client_ip(request)
 
-        if email:
-            if User.objects.filter(email=email, is_active=True).exists():
+        if phone_number:
+            if User.objects.filter(phone_number=phone_number, is_active=True).exists():
                 return Response(
-                    {"success": False, 'error': 'This email already exists', "errorStatus": "exists"},
+                    {"success": False, 'error': 'This phone number already exists', "errorStatus": "exists"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            old_user = User.objects.filter(email=email, is_active=False).first()
+            old_user = User.objects.filter(phone_number=phone_number, is_active=False).first()
             if old_user:
                 old_cache_key = f'activation_code_{old_user.id}'
                 cache.delete(old_cache_key)
@@ -70,13 +70,13 @@ class UserRegistrationView(APIView):
 
         user = serializer.save()
 
-        email = user.email
+        phone_number = user.phone_number
 
         code = ''.join(random.choices(string.digits, k=6))
 
         cache_key = f'activation_code_{user.id}'
         cache_data = {
-            'email': email,
+            'phone_number': phone_number,
             'code': code,
             'ip_address': ip_address,
             'user_id': user.id
@@ -84,19 +84,20 @@ class UserRegistrationView(APIView):
         cache.set(cache_key, cache_data, timeout=60)
 
         try:
-            send_mail(
-                subject='Aktivatsiya kodi',
-                message=f'Assalomu alaykum!\n\nSizning aktivatsiya kodingiz: {code}\n\nKod 5 daqiqa amal qiladi.',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=False,
-            )
+            # send_mail(
+            #     subject='Aktivatsiya kodi',
+            #     message=f'Assalomu alaykum!\n\nSizning aktivatsiya kodingiz: {code}\n\nKod 5 daqiqa amal qiladi.',
+            #     from_email=settings.DEFAULT_FROM_EMAIL,
+            #     recipient_list=[user.email],
+            #     fail_silently=False,
+            # )
+            print(f"Actiavtion code send: {code}")
         except Exception as e:
             pass
 
         response_data = {
             'success': True,
-            'message': 'We can send code to your email',
+            'message': 'We can send code to your phone',
         }
 
         return Response(response_data, status=status.HTTP_201_CREATED)

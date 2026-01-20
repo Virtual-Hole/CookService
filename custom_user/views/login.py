@@ -30,7 +30,7 @@ class UserLoginView(APIView):
             ),
             400: OpenApiResponse(
                 response=ErrorResponseSerializer,
-                description='Email yoki parol noto\'g\'ri'
+                description='Raqam yoki parol noto\'g\'ri'
             ),
             401: OpenApiResponse(
                 response=ErrorResponseSerializer,
@@ -54,22 +54,22 @@ class UserLoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        email = serializer.validated_data['email']
+        phone_number = serializer.validated_data['phone_number']
         password = serializer.validated_data['password']
         device_hardware = request.data.get('device_hardware')
 
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(phone_number=phone_number)
 
             if not user.check_password(password):
                 return Response(
-                    {'success': False, 'error': 'Incorrect email or password.', 'errorStatus': 'data_credential'},
+                    {'success': False, 'error': 'Incorrect phone number or password.', 'errorStatus': 'data_credential'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
             if not user.is_active:
                 return Response(
-                    {'success': False, 'error': 'Account not activated. Please enter the code sent to your email.', 'errorStatus': "not_activated"},
+                    {'success': False, 'error': 'Account not activated. Please enter the code sent to your phone number.', 'errorStatus': "not_activated"},
                     status=status.HTTP_401_UNAUTHORIZED
                 )
 
@@ -111,7 +111,7 @@ class UserLoginView(APIView):
 
         except User.DoesNotExist:
             return Response(
-                {'success': False, 'error': 'Incorrect email or password.', 'errorStatus': 'data_credential'},
+                {'success': False, 'error': 'Incorrect phone number or password.', 'errorStatus': 'data_credential'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 

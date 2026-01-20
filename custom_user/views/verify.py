@@ -59,7 +59,7 @@ class VerifyCodeUniversalView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        email = serializer.validated_data['email']
+        phone_number = serializer.validated_data['phone_number']
         code = serializer.validated_data['code']
         request_type = serializer.validated_data['request_type']
         ip_address = get_client_ip(request)
@@ -68,7 +68,7 @@ class VerifyCodeUniversalView(APIView):
         device_model = device.get('device_model')
 
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(phone_number=phone_number)
 
             if request_type == 'register':
                 cache_key = f'activation_code_{user.id}'
@@ -152,7 +152,7 @@ class VerifyCodeUniversalView(APIView):
                 reset_cache_key = f'password_reset_token_{reset_token}'
                 cache.set(reset_cache_key, {
                     'user_id': user.id,
-                    'email': email,
+                    'phone_number': phone_number,
                     'ip_address': ip_address,
                 }, timeout=900)
 
@@ -169,7 +169,7 @@ class VerifyCodeUniversalView(APIView):
 
         except User.DoesNotExist:
             return Response(
-                {'success': False, 'error': 'No user found with this email.', 'errorStatus': 'exists'},
+                {'success': False, 'error': 'No user found with this phone number.', 'errorStatus': 'exists'},
                 status=status.HTTP_404_NOT_FOUND
             )
 

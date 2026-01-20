@@ -29,8 +29,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         BRANCH_ADMIN = 'branch_admin', 'branch_admin'
         USER = 'user', 'user'
 
-    email = models.EmailField(unique=True, null=False)
-    phone_number = models.CharField(max_length=15, null=True)
+    email = models.EmailField(unique=True, null=True)
+    phone_number = models.CharField(max_length=15, null=False, unique=True)
     full_name = models.CharField(max_length=30, null=True, blank=True)
     date_joined = models.DateTimeField(default=timezone.now)
     profile_photo = models.ImageField(
@@ -59,11 +59,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     objects = CustomUserManager()
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = 'phone_number'
     REQUIRED_FIELDS = []
 
     def __str__(self):
-        return self.email
+        return f"{self.full_name} -> {self.phone_number}"
 
     def set_password(self, raw_password):
         self.password = make_password(raw_password)

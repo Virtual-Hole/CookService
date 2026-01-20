@@ -30,7 +30,7 @@ class ForgotPasswordView(APIView):
         responses={
             200: OpenApiResponse(
                 response=ForgotPasswordResponseSerializer,
-                description='Parol tiklash kodi email\'ga yuborildi'
+                description='Parol tiklash kodi raqamga yuborildi'
             ),
             404: OpenApiResponse(
                 response=ErrorResponseSerializer,
@@ -42,12 +42,12 @@ class ForgotPasswordView(APIView):
             ),
             500: OpenApiResponse(
                 response=ErrorResponseSerializer,
-                description='Email yuborishda xatolik'
+                description='Raqamga yuborishda xatolik'
             ),
         },
         tags=['Password Reset'],
         summary='Parolni unutdim',
-        description='Email\'ga parol tiklash kodini yuborish'
+        description='Telefon raqamga parol tiklash kodini yuborish'
     )
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
@@ -62,11 +62,11 @@ class ForgotPasswordView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        email = serializer.validated_data['email']
+        phone_number = serializer.validated_data['phone_number']
         ip_address = get_client_ip(request)
 
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(phone_number=phone_number)
 
             if not user.is_active:
                 return Response(
@@ -91,7 +91,7 @@ class ForgotPasswordView(APIView):
             code = ''.join(random.choices(string.digits, k=6))
 
             cache_data = {
-                'email': email,
+                'phone_number': phone_number,
                 'code': code,
                 'ip_address': ip_address,
                 'user_id': user.id
@@ -100,29 +100,30 @@ class ForgotPasswordView(APIView):
             cache.set(f'last_reset_sent_{user.id}_{ip_address}', True, timeout=60)
 
             try:
-                send_mail(
-                    subject='Parolni tiklash kodi',
-                    message=f'Assalomu alaykum!\n\nParolni tiklash kodingiz: {code}\n\nKod 10 daqiqa amal qiladi.\n\nAgar siz bu so\'rovni yuborgan bo\'lmasangiz, bu xabarni e\'tiborsiz qoldiring.',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[email],
-                    fail_silently=False,
-                )
+                # send_mail(
+                #     subject='Parolni tiklash kodi',
+                #     message=f'Assalomu alaykum!\n\nParolni tiklash kodingiz: {code}\n\nKod 10 daqiqa amal qiladi.\n\nAgar siz bu so\'rovni yuborgan bo\'lmasangiz, bu xabarni e\'tiborsiz qoldiring.',
+                #     from_email=settings.DEFAULT_FROM_EMAIL,
+                #     recipient_list=[email],
+                #     fail_silently=False,
+                # )
+                print(f"Activation code send: {code}")
             except Exception as e:
                 return Response(
-                    {'success': False, 'error': 'An error occurred while sending the email.', 'errorStatus': 'send_mail'},
+                    {'success': False, 'error': 'An error occurred while sending the phone.', 'errorStatus': 'send_mail'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
             response_data = {
                 'success': True,
-                'message': 'A password recovery code has been sent to your email.',
+                'message': 'A password recovery code has been sent to your phone.',
             }
 
             return Response(response_data, status=status.HTTP_200_OK)
 
         except User.DoesNotExist:
             return Response(
-                {'success': False, 'error': 'No user found with this email.', 'errorStatus': 'exists'},
+                {'success': False, 'error': 'No user found with this phone number.', 'errorStatus': 'exists'},
                 status=status.HTTP_404_NOT_FOUND
             )
 

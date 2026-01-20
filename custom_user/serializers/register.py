@@ -12,16 +12,16 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = ('email', 'phone_number', 'full_name', 'password')
 
-    def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Bu email allaqachon ro'yxatdan o'tgan")
+    def validate_phone_number(self, value):
+        if User.objects.filter(phone_number=value).exists():
+            raise serializers.ValidationError("Bu raqam allaqachon ro'yxatdan o'tgan")
         return value
 
     def create(self, validated_data):
         user = User.objects.create_user(
-            email=validated_data['email'],
+            email=validated_data.get('email'),
             password=validated_data['password'],
-            phone_number=validated_data.get('phone_number'),
+            phone_number=validated_data['phone_number'],
             full_name=validated_data.get('full_name', ''),
             role=User.RoleChoices.USER,
             is_active=False

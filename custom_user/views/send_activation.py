@@ -21,11 +21,6 @@ User = get_user_model()
 
 
 class SendActivationCodeView(APIView):
-    """
-    Foydalanuvchiga email orqali 6 raqamli aktivatsiya kodini yuboradi.
-    Kod 5 daqiqa davomida amal qiladi.
-    Har safar yangi IP'dan so'rov kelganda eski cache bekor qilinadi.
-    """
     permission_classes = [AllowAny]
 
     @extend_schema(
@@ -37,7 +32,7 @@ class SendActivationCodeView(APIView):
             ),
             400: OpenApiResponse(
                 response=ErrorResponseSerializer,
-                description='Email talab qilinadi yoki akkount allaqachon aktivlashtirilgan'
+                description='Raqam talab qilinadi yoki akkount allaqachon aktivlashtirilgan'
             ),
             404: OpenApiResponse(
                 response=ErrorResponseSerializer,
@@ -49,12 +44,11 @@ class SendActivationCodeView(APIView):
             ),
             500: OpenApiResponse(
                 response=ErrorResponseSerializer,
-                description='Email yuborishda xatolik'
+                description='Raqamga yuborishda xatolik'
             ),
         },
         tags=['Authentication'],
         summary='Aktivatsiya kodini qayta yuborish',
-        description='Foydalanuvchining emailiga 6 raqamli aktivatsiya kodini qayta yuboradi'
     )
     def post(self, request):
         serializer = SendActivationCodeSerializer(data=request.data)
@@ -69,11 +63,11 @@ class SendActivationCodeView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        email = serializer.validated_data['email']
+        phone_number = serializer.validated_data['phone_number']
         ip_address = get_client_ip(request)
 
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(phone_number=phone_number)
 
             if user.is_active:
                 return Response(
@@ -90,7 +84,7 @@ class SendActivationCodeView(APIView):
                     if cache.get(last_sent_key):
                         return Response(
                             {'status': False, 'error': 'Please wait 1 minute to request a new code.',
-                             'errorStatus': 'time_out'},
+                            'errorStatus': 'time_out'},
                             status=status.HTTP_429_TOO_MANY_REQUESTS
                         )
                 else:
@@ -99,7 +93,7 @@ class SendActivationCodeView(APIView):
             code = ''.join(random.choices(string.digits, k=6))
 
             cache_data = {
-                'email': email,
+                'phone_number': phone_number,
                 'code': code,
                 'ip_address': ip_address,
                 'user_id': user.id
@@ -108,29 +102,30 @@ class SendActivationCodeView(APIView):
             cache.set(f'last_code_sent_{user.id}_{ip_address}', True, timeout=60)
 
             try:
-                send_mail(
-                    subject='Aktivatsiya kodi',
-                    message=f'Assalomu alaykum!\n\nSizning aktivatsiya kodingiz: {code}\n\nKod 5 daqiqa amal qiladi.',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[email],
-                    fail_silently=False,
-                )
+                # send_mail(
+                #     subject='Aktivatsiya kodi',
+                #     message=f'Assalomu alaykum!\n\nSizning aktivatsiya kodingiz: {code}\n\nKod 5 daqiqa amal qiladi.',
+                #     from_email=settings.DEFAULT_FROM_EMAIL,
+                #     recipient_list=[email],
+                #     fail_silently=False,
+                # )
+                print(f"Activation code send: {code}")
             except Exception as e:
                 return Response(
-                    {'success': False, 'error': 'An error occurred while sending the email.', "errorStatus": "data_credential"},
+                    {'success': False, 'error': 'An error occurred while sending the phone.', "errorStatus": "data_credential"},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
             response_data = {
                 'success': True,
-                'message': 'The activation code has been sent to your email.',
+                'message': 'The activation code has been sent to your phone.',
             }
 
             return Response(response_data, status=status.HTTP_200_OK)
 
         except User.DoesNotExist:
             return Response(
-                {'success': False, 'error': 'No user found with this email.', 'errorStatus': 'data_credential'},
+                {'success': False, 'error': 'No user found with this phone number.', 'errorStatus': 'data_credential'},
                 status=status.HTTP_404_NOT_FOUND
             )
 

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 from custom_user.models import Device
 
 
@@ -54,6 +55,6 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
                     access_token=data['access'],
                 )
         except Exception as e:
-            pass
+            return TokenError()
 
         return data
