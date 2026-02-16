@@ -78,19 +78,6 @@ class RestaurantAdminUserAdmin(admin.ModelAdmin):
     list_filter = ('is_active',)
     search_fields = ('email', 'full_name', 'phone_number')
 
-    fieldsets = (
-        ('Basic Information', {
-            'fields': ('email', 'full_name', 'phone_number', 'username', 'password', 'is_active')
-        }),
-        ('Branch Management', {
-            'fields': ('managed_branches',)
-        }),
-        ('Permissions', {
-            'fields': ('groups', 'user_permissions'),
-            'classes': ('collapse',),
-        }),
-    )
-
     filter_horizontal = ('managed_branches', 'groups', 'user_permissions')
 
     def get_branches(self, obj):
