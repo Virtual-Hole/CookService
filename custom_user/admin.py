@@ -62,12 +62,6 @@ class SuperAdminRestaurantAdmin(admin.ModelAdmin):
     list_filter = ('created_at',)
     search_fields = ('name', 'email', 'phone')
 
-    fieldsets = (
-        ('Basic Information', {
-            'fields': ('name', 'email', 'phone')
-        }),
-    )
-
     def get_admins_count(self, obj):
         count = obj.admins.count()
         return format_html('<b>{}</b> admins', count)
@@ -86,15 +80,6 @@ class SuperAdminBranchesAdmin(admin.ModelAdmin):
     list_display = ('name', 'restaurant', 'address', 'state', 'status', 'get_categories_count', 'get_collections_count')
     list_filter = ('status', 'state', 'restaurant')
     search_fields = ('name', 'address')
-
-    fieldsets = (
-        ('Basic Information', {
-            'fields': ('restaurant', 'name', 'address', 'state')
-        }),
-        ('Status', {
-            'fields': ('status',)
-        }),
-    )
 
     def get_categories_count(self, obj):
         count = obj.food_categories.count()
@@ -115,12 +100,6 @@ class SuperAdminFoodCategoryAdmin(admin.ModelAdmin):
     list_filter = ('branch__restaurant', 'branch')
     search_fields = ('name', 'branch__name', 'branch__restaurant__name')
 
-    fieldsets = (
-        ('Category Information', {
-            'fields': ('branch', 'name')
-        }),
-    )
-
     def get_restaurant(self, obj):
         return obj.branch.restaurant.name
 
@@ -138,15 +117,6 @@ class SuperAdminFoodAdmin(admin.ModelAdmin):
     list_display = ('name', 'category', 'get_branch', 'price', 'get_discount_info', 'get_image_preview', 'created_at')
     list_filter = ('category__branch__restaurant', 'category__branch', 'category', 'discount_active')
     search_fields = ('name', 'description', 'category__name')
-
-    fieldsets = (
-        ('Basic Information', {
-            'fields': ('category', 'name', 'description', 'image')
-        }),
-        ('Pricing', {
-            'fields': ('price', 'discount_active', 'discount_percent')
-        }),
-    )
 
     readonly_fields = ('created_at', 'updated_at')
 
@@ -181,12 +151,6 @@ class SuperAdminMenuCollectionAdmin(admin.ModelAdmin):
     list_filter = ('is_active', 'branch__restaurant', 'branch')
     search_fields = ('name', 'description', 'branch__name')
 
-    fieldsets = (
-        ('Collection Information', {
-            'fields': ('branch', 'name', 'description', 'is_active')
-        }),
-    )
-
     def get_restaurant(self, obj):
         return obj.branch.restaurant.name
 
@@ -204,12 +168,6 @@ class SuperAdminFoodMenuBranchAdmin(admin.ModelAdmin):
     list_display = ('food', 'collection', 'get_branch', 'is_available', 'added_at')
     list_filter = ('is_available', 'collection__branch__restaurant', 'collection__branch', 'collection')
     search_fields = ('food__name', 'collection__name')
-
-    fieldsets = (
-        ('Menu Item', {
-            'fields': ('collection', 'food', 'is_available')
-        }),
-    )
 
     def get_branch(self, obj):
         return obj.collection.branch.name
