@@ -36,13 +36,23 @@ class ResetPasswordView(APIView):
         serializer = ResetPasswordSerializer(data=request.data)
 
         if not serializer.is_valid():
+            errors = serializer.errors
+            first_field = next(iter(errors))
+            error_msg = errors[first_field][0]
             return Response(
-                {'error': serializer.errors},
+                {'success': False, 'error': error_msg, 'errorStatus': 'data_credential'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        old_password = serializer.validated_data['old_password']
         new_password = serializer.validated_data['new_password']
         user = request.user
+
+        if not user.check_password(old_password):
+            return Response(
+                {'success': False, 'error': 'Old password is incorrect.', 'errorStatus': 'data_credential'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         user.set_password(new_password)
         user.save()

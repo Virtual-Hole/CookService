@@ -2,13 +2,18 @@ from rest_framework import serializers
 
 
 class ForgotPasswordSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True, help_text="User email manzili")
+    phone_number = serializers.CharField(required=True, max_length=15, help_text="User phone number")
+
+    def validate_phone_number(self, value):
+        if not value:
+            raise serializers.ValidationError("Phone number is required")
+        return value
 
 
 class ForgotPasswordResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
-    email = serializers.EmailField()
+    phone_number = serializers.CharField()
 
 class ForgotPasswordCompleteSerializer(serializers.Serializer):
     reset_token = serializers.UUIDField(required=True, help_text="Reset token (UUID)")

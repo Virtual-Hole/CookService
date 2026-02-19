@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.exceptions import TokenError
 from custom_user.models import Device
 
 
@@ -10,22 +9,20 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
 
-        try:
-            device = Device.objects.filter(user=self.user).first()
-        except Device.DoesNotExist:
-            raise serializers.ValidationError({'error': 'device not found'})
+        device = Device.objects.filter(user=self.user).first()
 
         refresh = self.get_token(self.user)
 
-        if device.device_hardware:
+        if device and device.device_hardware:
             refresh['device_hardware'] = device.device_hardware
 
         data['refresh'] = str(refresh)
         data['access'] = str(refresh.access_token)
 
-        if device.device_hardware:
+        if device:
             device.access_token = data['access']
             device.refresh_token = data['refresh']
+            device.save(update_fields=['access_token', 'refresh_token'])
 
         return data
 
@@ -54,7 +51,7 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
                 ).update(
                     access_token=data['access'],
                 )
-        except Exception as e:
-            return TokenError()
+        except Exception:
+            raise serializers.ValidationError({'error': 'Invalid refresh token'})
 
         return data

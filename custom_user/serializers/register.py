@@ -5,7 +5,7 @@ User = get_user_model()
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
-    phone_number = serializers.CharField(max_length=15, required=False, allow_blank=True, allow_null=True)
+    phone_number = serializers.CharField(max_length=15, required=True)
     full_name = serializers.CharField(max_length=30, required=False, allow_blank=True, allow_null=True)
 
     class Meta:
@@ -32,6 +32,5 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class UserRegistrationResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
-
 
 

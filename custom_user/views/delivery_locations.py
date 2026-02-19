@@ -17,10 +17,12 @@ from custom_user.models import Address
 
 
 class AddressListView(ListAPIView):
-    queryset = Address.objects.all()
     permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
     serializer_class = AddressSerializer
     pagination_class = CustomPageNumberPagination
+
+    def get_queryset(self):
+        return Address.objects.filter(user=self.request.user)
 
     @extend_schema(
         operation_id="address_list",

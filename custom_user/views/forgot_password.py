@@ -117,6 +117,7 @@ class ForgotPasswordView(APIView):
             response_data = {
                 'success': True,
                 'message': 'A password recovery code has been sent to your phone.',
+                'phone_number': phone_number,
             }
 
             return Response(response_data, status=status.HTTP_200_OK)

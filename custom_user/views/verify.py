@@ -104,6 +104,10 @@ class VerifyCodeUniversalView(APIView):
 
             # ========== REGISTER TYPE ==========
             if request_type == 'register':
+                if not user.is_active:
+                    user.is_active = True
+                    user.save(update_fields=['is_active'])
+
                 device_hardware_from_request = serializer.validated_data.get('device_hardware')
                 tokens = get_tokens_for_user(user, device_hardware=device_hardware_from_request)
 
@@ -173,4 +177,3 @@ class VerifyCodeUniversalView(APIView):
                 {'success': False, 'error': 'No user found with this phone number.', 'errorStatus': 'exists'},
                 status=status.HTTP_404_NOT_FOUND
             )
-

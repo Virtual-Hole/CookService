@@ -71,7 +71,7 @@ class SendActivationCodeView(APIView):
 
             if user.is_active:
                 return Response(
-                    {'status': False, 'error': 'This account is already activated.', 'errorStatus': 'already_have'},
+                    {'success': False, 'error': 'This account is already activated.', 'errorStatus': 'already_have'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -83,7 +83,7 @@ class SendActivationCodeView(APIView):
                     last_sent_key = f'last_code_sent_{user.id}_{ip_address}'
                     if cache.get(last_sent_key):
                         return Response(
-                            {'status': False, 'error': 'Please wait 1 minute to request a new code.',
+                            {'success': False, 'error': 'Please wait 1 minute to request a new code.',
                             'errorStatus': 'time_out'},
                             status=status.HTTP_429_TOO_MANY_REQUESTS
                         )
@@ -119,6 +119,7 @@ class SendActivationCodeView(APIView):
             response_data = {
                 'success': True,
                 'message': 'The activation code has been sent to your phone.',
+                'phone_number': phone_number,
             }
 
             return Response(response_data, status=status.HTTP_200_OK)
@@ -128,4 +129,3 @@ class SendActivationCodeView(APIView):
                 {'success': False, 'error': 'No user found with this phone number.', 'errorStatus': 'data_credential'},
                 status=status.HTTP_404_NOT_FOUND
             )
-

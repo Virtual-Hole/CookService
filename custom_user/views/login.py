@@ -39,7 +39,7 @@ class UserLoginView(APIView):
         },
         tags=['Authentication'],
         summary='Login qilish',
-        description='Email va parol bilan login qilib JWT tokenlarni olish (device ma\'lumotlari ixtiyoriy)'
+        description='Telefon raqam va parol bilan login qilib JWT tokenlarni olish'
     )
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
@@ -56,7 +56,7 @@ class UserLoginView(APIView):
 
         phone_number = serializer.validated_data['phone_number']
         password = serializer.validated_data['password']
-        device_hardware = request.data.get('device_hardware')
+        device_hardware = serializer.validated_data.get('device_hardware') or None
 
         try:
             user = User.objects.get(phone_number=phone_number)
@@ -114,4 +114,3 @@ class UserLoginView(APIView):
                 {'success': False, 'error': 'Incorrect phone number or password.', 'errorStatus': 'data_credential'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-

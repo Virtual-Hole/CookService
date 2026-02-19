@@ -12,10 +12,12 @@ from custom_user.permissions import IsSuperAdmin, IsUser
 
 
 class CardListView(ListAPIView):
-    queryset = Card.objects.all()
     serializer_class = CardSerializer
     pagination_class = CustomPageNumberPagination
     permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
+
+    def get_queryset(self):
+        return Card.objects.filter(user=self.request.user)
 
     @extend_schema(
         responses={

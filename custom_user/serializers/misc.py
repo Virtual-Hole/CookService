@@ -37,7 +37,7 @@ class ErrorResponseSerializer(serializers.Serializer):
 
 
 class VerifyCodeUniversalSerializer(serializers.Serializer):
-    phone_number = serializers.IntegerField(required=True, help_text="User phone number")
+    phone_number = serializers.CharField(required=True, max_length=15, help_text="User phone number")
     code = serializers.CharField(max_length=6, min_length=6, required=True, help_text="6 raqamli kod")
     request_type = serializers.ChoiceField(
         choices=['register', 'forgot'],
@@ -54,6 +54,11 @@ class VerifyCodeUniversalSerializer(serializers.Serializer):
     def validate_code(self, value):
         if not value.isdigit():
             raise serializers.ValidationError("Kod faqat raqamlardan iborat bo'lishi kerak")
+        return value
+
+    def validate_phone_number(self, value):
+        if not value:
+            raise serializers.ValidationError("Phone number is required")
         return value
 
     def validate(self, data):

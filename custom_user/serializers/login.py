@@ -4,13 +4,22 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class UserLoginSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True)
+    phone_number = serializers.CharField(required=True, max_length=15)
     password = serializers.CharField(required=True, write_only=True, min_length=8)
-    device_hardware = serializers.CharField(required=True)
+    device_hardware = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_phone_number(self, value):
+        if not value:
+            raise serializers.ValidationError("Phone number is required")
+        return value
+
+
+class TokenPairSerializer(serializers.Serializer):
+    access = serializers.CharField(help_text="JWT Access Token")
+    refresh = serializers.CharField(help_text="JWT Refresh Token")
 
 
 class UserLoginResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
-    access = serializers.CharField(help_text="JWT Access Token")
-    refresh = serializers.CharField(help_text="JWT Refresh Token")
+    login_response = TokenPairSerializer()
