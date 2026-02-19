@@ -248,6 +248,12 @@ SPECTACULAR_SETTINGS = {
     'PREPROCESSING_HOOKS': [
         'custom_user.utils.custom_preprocessing_hook',
     ],
+
+    "SWAGGER_UI_SETTINGS": {
+        "filter": True,        
+        "tagsSorter": "alpha",
+        "operationsSorter": "alpha",
+    },
 }
 
 
