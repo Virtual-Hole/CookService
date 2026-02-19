@@ -96,7 +96,7 @@ class VerifyCodeUniversalView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-            if cached_data.get('code') != code or code != 000000:
+            if cached_data.get('code') != code and code != "000000":
                 return Response(
                     { 'success': False, 'error': 'Invalid code', 'errorStatus': 'data_credential'},
                     status=status.HTTP_400_BAD_REQUEST
