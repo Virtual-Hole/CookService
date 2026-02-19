@@ -4,22 +4,17 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class SendActivationCodeSerializer(serializers.Serializer):
-    email = serializers.EmailField(
-        required=True,
-        help_text="Foydalanuvchi email manzili"
-    )
-
+    phone_number = serializers.IntegerField(required=True,
+        help_text="Foydalanuvchi telefon raqami")
 
 class SendActivationCodeResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
-    email = serializers.EmailField()
+    phone_number = serializers.IntegerField()
 
 class VerifyActivationCodeSerializer(serializers.Serializer):
-    email = serializers.EmailField(
-        required=True,
-        help_text="Foydalanuvchi email manzili"
-    )
+    phone_number = serializers.IntegerField(required=True,
+        help_text="Foydalanuvchi telefon raqami")
     code = serializers.CharField(
         max_length=6,
         min_length=6,
