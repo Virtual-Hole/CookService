@@ -37,7 +37,7 @@ class ErrorResponseSerializer(serializers.Serializer):
 
 
 class VerifyCodeUniversalSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True, help_text="User email")
+    phone_number = serializers.IntegerField(required=True, help_text="User phone number")
     code = serializers.CharField(max_length=6, min_length=6, required=True, help_text="6 raqamli kod")
     request_type = serializers.ChoiceField(
         choices=['register', 'forgot'],
