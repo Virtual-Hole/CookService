@@ -3,6 +3,10 @@ from rest_framework.routers import DefaultRouter
 
 from admin_api.views import (
     BranchAdminBranchViewSet,
+    SuperAdminBranchAdminUserViewSet,
+    SuperAdminBranchViewSet,
+    SuperAdminRestaurantAdminUserViewSet,
+    SuperAdminRestaurantViewSet,
     BranchAdminFoodCategoryViewSet,
     BranchAdminFoodViewSet,
     BranchAdminMenuBranchViewSet,
@@ -19,6 +23,27 @@ from admin_api.views import (
 
 
 router = DefaultRouter()
+
+router.register(
+    r"super/restaurants",
+    SuperAdminRestaurantViewSet,
+    basename="super-admin-restaurants",
+)
+router.register(
+    r"super/branches",
+    SuperAdminBranchViewSet,
+    basename="super-admin-branches",
+)
+router.register(
+    r"super/restaurant-admins",
+    SuperAdminRestaurantAdminUserViewSet,
+    basename="super-admin-restaurant-admins",
+)
+router.register(
+    r"super/branch-admins",
+    SuperAdminBranchAdminUserViewSet,
+    basename="super-admin-branch-admins",
+)
 
 router.register(
     r"restaurant/branch-admins",
@@ -87,4 +112,3 @@ urlpatterns = [
     path("", include(router.urls)),
     path("branch/me/", BranchAdminProfileView.as_view(), name="branch-admin-me"),
 ]
-

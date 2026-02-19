@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from custom_user.pagination import CustomPageNumberPagination
-from custom_user.permissions import IsBranchAdmin, IsRestaurantAdmin
+from custom_user.permissions import IsBranchAdmin, IsRestaurantAdmin, IsSuperAdmin
 from foods.models import Food, FoodCategory, FoodMenuBranch, FoodMenuBranchCollection
 from restaurants.models import Restaurants, RestaurantBranches
 
@@ -17,6 +17,8 @@ from admin_api.serializers import (
     AdminFoodMenuBranchSerializer,
     AdminFoodSerializer,
     BranchAdminSelfSerializer,
+    SuperAdminRestaurantAdminUserSerializer,
+    SuperAdminRestaurantSerializer,
     RestaurantAdminBranchAdminUserSerializer,
     RestaurantAdminBranchSerializer,
     RestaurantAdminRestaurantSerializer,
@@ -81,6 +83,41 @@ class BranchAdminBaseViewSet(viewsets.ModelViewSet):
 class BranchAdminReadOnlyViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, IsBranchAdmin]
     pagination_class = CustomPageNumberPagination
+
+
+class SuperAdminBaseViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+    pagination_class = CustomPageNumberPagination
+
+
+@_tag_viewset("Super Admin - Restaurants")
+class SuperAdminRestaurantViewSet(SuperAdminBaseViewSet):
+    serializer_class = SuperAdminRestaurantSerializer
+    queryset = Restaurants.objects.all()
+
+
+@_tag_viewset("Super Admin - Branches")
+class SuperAdminBranchViewSet(SuperAdminBaseViewSet):
+    serializer_class = RestaurantAdminBranchSerializer
+    queryset = RestaurantBranches.objects.all()
+
+
+@_tag_viewset("Super Admin - Restaurant Admins")
+class SuperAdminRestaurantAdminUserViewSet(SuperAdminBaseViewSet):
+    serializer_class = SuperAdminRestaurantAdminUserSerializer
+    queryset = User.objects.all()
+
+    def get_queryset(self):
+        return User.objects.filter(role="restaurant_admin")
+
+
+@_tag_viewset("Super Admin - Branch Admins")
+class SuperAdminBranchAdminUserViewSet(SuperAdminBaseViewSet):
+    serializer_class = RestaurantAdminBranchAdminUserSerializer
+    queryset = User.objects.all()
+
+    def get_queryset(self):
+        return User.objects.filter(role="branch_admin")
 
 
 @_tag_viewset("Restaurant Admin - Branch Admins")

@@ -35,6 +35,92 @@ class RestaurantAdminRestaurantSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class SuperAdminRestaurantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Restaurants
+        fields = (
+            "id",
+            "name",
+            "logo",
+            "phone",
+            "email",
+            "description",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "created_at", "updated_at")
+
+
+class SuperAdminRestaurantAdminUserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False, min_length=8)
+
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "email",
+            "phone_number",
+            "full_name",
+            "password",
+            "profile_photo",
+            "managed_restaurants",
+            "is_active",
+            "role",
+        )
+        read_only_fields = ("id", "role")
+
+    def validate_managed_restaurants(self, value):
+        if not value:
+            raise serializers.ValidationError("At least one restaurant is required.")
+        return value
+
+    def validate(self, data):
+        if self.instance is None:
+            if not self.initial_data.get("password"):
+                raise serializers.ValidationError({"password": "Password is required."})
+            if not self.initial_data.get("managed_restaurants"):
+                raise serializers.ValidationError({"managed_restaurants": "At least one restaurant is required."})
+        return data
+
+    def create(self, validated_data):
+        restaurants = validated_data.pop("managed_restaurants", [])
+        password = validated_data.pop("password", None)
+        profile_photo = validated_data.pop("profile_photo", None)
+
+        user = User(
+            email=validated_data.get("email"),
+            phone_number=validated_data.get("phone_number"),
+            full_name=validated_data.get("full_name", ""),
+            is_active=validated_data.get("is_active", True),
+            role=User.RoleChoices.RESTAURANT_ADMIN,
+            is_staff=True,
+        )
+        user.set_password(password)
+        if profile_photo:
+            user.profile_photo = profile_photo
+        user.save()
+        user.managed_restaurants.set(restaurants)
+        user.managed_branches.clear()
+        return user
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop("password", None)
+        restaurants = validated_data.pop("managed_restaurants", None)
+
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+
+        if password:
+            instance.set_password(password)
+        instance.save()
+
+        if restaurants is not None:
+            instance.managed_restaurants.set(restaurants)
+            instance.managed_branches.clear()
+
+        return instance
+
+
 class RestaurantAdminBranchSerializer(serializers.ModelSerializer):
     class Meta:
         model = RestaurantBranches
