@@ -5,6 +5,30 @@ import uuid
 from django.db import migrations, models
 
 
+def populate_food_uids(apps, schema_editor):
+    Food = apps.get_model("foods", "Food")
+    FoodCategory = apps.get_model("foods", "FoodCategory")
+    FoodMenuBranch = apps.get_model("foods", "FoodMenuBranch")
+    FoodMenuBranchCollection = apps.get_model("foods", "FoodMenuBranchCollection")
+
+    for food in Food.objects.filter(uid__isnull=True).only("id").iterator():
+        Food.objects.filter(pk=food.pk).update(uid=uuid.uuid4())
+
+    for category in FoodCategory.objects.filter(uid__isnull=True).only("id").iterator():
+        FoodCategory.objects.filter(pk=category.pk).update(uid=uuid.uuid4())
+
+    for menu_branch in FoodMenuBranch.objects.filter(uid__isnull=True).only("id").iterator():
+        FoodMenuBranch.objects.filter(pk=menu_branch.pk).update(uid=uuid.uuid4())
+
+    for collection in FoodMenuBranchCollection.objects.filter(uid__isnull=True).only("id").iterator():
+        FoodMenuBranchCollection.objects.filter(pk=collection.pk).update(uid=uuid.uuid4())
+
+
+def reverse_populate_food_uids(apps, schema_editor):
+    # No destructive reverse data migration.
+    pass
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -16,7 +40,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='food',
             name='uid',
-            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+            field=models.UUIDField(blank=True, editable=False, null=True),
         ),
         migrations.AddField(
             model_name='foodcategory',
@@ -26,14 +50,38 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='foodcategory',
             name='uid',
-            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+            field=models.UUIDField(blank=True, editable=False, null=True),
         ),
         migrations.AddField(
             model_name='foodmenubranch',
             name='uid',
-            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+            field=models.UUIDField(blank=True, editable=False, null=True),
         ),
         migrations.AddField(
+            model_name='foodmenubranchcollection',
+            name='uid',
+            field=models.UUIDField(blank=True, editable=False, null=True),
+        ),
+        migrations.RunPython(
+            populate_food_uids,
+            reverse_populate_food_uids,
+        ),
+        migrations.AlterField(
+            model_name='food',
+            name='uid',
+            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+        ),
+        migrations.AlterField(
+            model_name='foodcategory',
+            name='uid',
+            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+        ),
+        migrations.AlterField(
+            model_name='foodmenubranch',
+            name='uid',
+            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+        ),
+        migrations.AlterField(
             model_name='foodmenubranchcollection',
             name='uid',
             field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),

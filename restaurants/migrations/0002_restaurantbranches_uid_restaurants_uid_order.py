@@ -6,6 +6,22 @@ from django.conf import settings
 from django.db import migrations, models
 
 
+def populate_restaurant_uids(apps, schema_editor):
+    Restaurants = apps.get_model("restaurants", "Restaurants")
+    RestaurantBranches = apps.get_model("restaurants", "RestaurantBranches")
+
+    for restaurant in Restaurants.objects.filter(uid__isnull=True).only("id").iterator():
+        Restaurants.objects.filter(pk=restaurant.pk).update(uid=uuid.uuid4())
+
+    for branch in RestaurantBranches.objects.filter(uid__isnull=True).only("id").iterator():
+        RestaurantBranches.objects.filter(pk=branch.pk).update(uid=uuid.uuid4())
+
+
+def reverse_populate_restaurant_uids(apps, schema_editor):
+    # No destructive reverse data migration.
+    pass
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -17,9 +33,23 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='restaurantbranches',
             name='uid',
-            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+            field=models.UUIDField(blank=True, editable=False, null=True),
         ),
         migrations.AddField(
+            model_name='restaurants',
+            name='uid',
+            field=models.UUIDField(blank=True, editable=False, null=True),
+        ),
+        migrations.RunPython(
+            populate_restaurant_uids,
+            reverse_populate_restaurant_uids,
+        ),
+        migrations.AlterField(
+            model_name='restaurantbranches',
+            name='uid',
+            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+        ),
+        migrations.AlterField(
             model_name='restaurants',
             name='uid',
             field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),

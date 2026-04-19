@@ -4,6 +4,35 @@ import django.db.models.deletion
 import uuid
 from django.conf import settings
 from django.db import migrations, models
+from django.db.models import Max
+
+
+COURIER_ID_START = 835950
+
+
+def populate_uid_and_courier_id(apps, schema_editor):
+    Address = apps.get_model("custom_user", "Address")
+    CustomUser = apps.get_model("custom_user", "CustomUser")
+
+    for address in Address.objects.filter(uid__isnull=True).only("id").iterator():
+        Address.objects.filter(pk=address.pk).update(uid=uuid.uuid4())
+
+    for user in CustomUser.objects.filter(uid__isnull=True).only("id").iterator():
+        CustomUser.objects.filter(pk=user.pk).update(uid=uuid.uuid4())
+
+    max_courier_id = CustomUser.objects.filter(courier_id__isnull=False).aggregate(
+        max_value=Max("courier_id")
+    )["max_value"]
+    next_courier_id = max(max_courier_id or COURIER_ID_START, COURIER_ID_START) + 1
+
+    for courier in CustomUser.objects.filter(role="courier", courier_id__isnull=True).order_by("id").only("id").iterator():
+        CustomUser.objects.filter(pk=courier.pk).update(courier_id=next_courier_id)
+        next_courier_id += 1
+
+
+def reverse_populate_uid_and_courier_id(apps, schema_editor):
+    # No destructive reverse data migration.
+    pass
 
 
 class Migration(migrations.Migration):
@@ -16,7 +45,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='address',
             name='uid',
-            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+            field=models.UUIDField(blank=True, editable=False, null=True),
         ),
         migrations.AddField(
             model_name='customuser',
@@ -24,6 +53,20 @@ class Migration(migrations.Migration):
             field=models.BigIntegerField(blank=True, null=True, unique=True),
         ),
         migrations.AddField(
+            model_name='customuser',
+            name='uid',
+            field=models.UUIDField(blank=True, editable=False, null=True),
+        ),
+        migrations.RunPython(
+            populate_uid_and_courier_id,
+            reverse_populate_uid_and_courier_id,
+        ),
+        migrations.AlterField(
+            model_name='address',
+            name='uid',
+            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+        ),
+        migrations.AlterField(
             model_name='customuser',
             name='uid',
             field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
