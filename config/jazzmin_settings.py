@@ -33,7 +33,7 @@ JAZZMIN_SETTINGS = {
     # --- Yuqori menyu (header bar) ---
     "topmenu_links": [
         {"name": "Cook Service", "url": "admin:index", "permissions": ["auth.view_user"]},
-        {"name": "Saytga o‘tish", "url": "/api/docs/", "new_window": True},
+        {"name": "Saytga o'tish", "url": "", "new_window": True},
         {"app": "products"},
     ],
 

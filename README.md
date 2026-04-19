@@ -19,3 +19,28 @@ docker compose logs -f redis
 ```env
 REDIS_URL=redis://127.0.0.1:6379/1
 ```
+
+## Environment
+
+Server uchun tavsiya:
+
+1. `.env.example` dan nusxa oling:
+```bash
+cp .env.example .env
+```
+2. `.env` ichidagi qiymatlarni productionga moslang.
+
+Minimal muhim envlar:
+```env
+SECRET_KEY=change-me
+DEBUG=False
+ALLOWED_HOSTS=api.example.com
+CSRF_TRUSTED_ORIGINS=https://api.example.com
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=cookservice
+DB_USER=postgres
+DB_PASSWORD=change-me
+DB_HOST=127.0.0.1
+DB_PORT=5432
+REDIS_URL=redis://127.0.0.1:6379/1
+```
