@@ -101,7 +101,9 @@ class SuperAdminFoodCategoryAdmin(admin.ModelAdmin):
     search_fields = ('name', 'branch__name', 'branch__restaurant__name')
 
     def get_restaurant(self, obj):
-        return obj.branch.restaurant.name
+        if obj.branch_id:
+            return obj.branch.restaurant.name
+        return "-"
 
     get_restaurant.short_description = 'Restaurant'
 
@@ -178,5 +180,4 @@ class SuperAdminFoodMenuBranchAdmin(admin.ModelAdmin):
         if db_field.name == "food":
             pass
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
-
 

@@ -1,13 +1,15 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from custom_user.models import VehicleType
+from foods.models import FoodCategory
 from foods.serializers import (
     FoodCategorySerializer,
     FoodSerializer,
     FoodMenuBranchCollectionSerializer,
     FoodMenuBranchSerializer,
 )
-from restaurants.models import Restaurants, RestaurantBranches
+from restaurants.models import Order, Restaurants, RestaurantBranches
 
 
 User = get_user_model()
@@ -24,6 +26,7 @@ class RestaurantAdminRestaurantSerializer(serializers.ModelSerializer):
         model = Restaurants
         fields = (
             "id",
+            "uid",
             "name",
             "logo",
             "phone",
@@ -36,19 +39,26 @@ class RestaurantAdminRestaurantSerializer(serializers.ModelSerializer):
 
 
 class SuperAdminRestaurantSerializer(serializers.ModelSerializer):
+    hasAdmin = serializers.SerializerMethodField()
+
     class Meta:
         model = Restaurants
         fields = (
             "id",
+            "uid",
             "name",
             "logo",
             "phone",
             "email",
             "description",
+            "hasAdmin",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "created_at", "updated_at")
+        read_only_fields = ("id", "uid", "created_at", "updated_at", "hasAdmin")
+
+    def get_hasAdmin(self, obj):
+        return obj.admins.filter(role=User.RoleChoices.RESTAURANT_ADMIN).exists()
 
 
 class SuperAdminRestaurantAdminUserSerializer(serializers.ModelSerializer):
@@ -58,6 +68,7 @@ class SuperAdminRestaurantAdminUserSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             "id",
+            "uid",
             "email",
             "phone_number",
             "full_name",
@@ -67,7 +78,7 @@ class SuperAdminRestaurantAdminUserSerializer(serializers.ModelSerializer):
             "is_active",
             "role",
         )
-        read_only_fields = ("id", "role")
+        read_only_fields = ("id", "uid", "role")
 
     def validate_managed_restaurants(self, value):
         if not value:
@@ -128,6 +139,8 @@ class SuperAdminCourierSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             "id",
+            "uid",
+            "courier_id",
             "email",
             "phone_number",
             "full_name",
@@ -137,16 +150,15 @@ class SuperAdminCourierSerializer(serializers.ModelSerializer):
             "is_active",
             "role",
         )
-        read_only_fields = ("id", "role")
+        read_only_fields = ("id", "uid", "courier_id", "role")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["managed_branches"].queryset = RestaurantBranches.objects.all()
 
     def validate(self, data):
-        if self.instance is None:
-            if not self.initial_data.get("password"):
-                raise serializers.ValidationError({"password": "Password is required."})
+        if self.instance is None and not self.initial_data.get("password"):
+            raise serializers.ValidationError({"password": "Password is required."})
         return data
 
     def create(self, validated_data):
@@ -188,8 +200,19 @@ class SuperAdminCourierSerializer(serializers.ModelSerializer):
         return instance
 
 
-class SuperAdminFoodCategorySerializer(FoodCategorySerializer):
-    pass
+class SuperAdminFoodCategorySerializer(serializers.ModelSerializer):
+    logo = serializers.ImageField(required=True)
+
+    class Meta:
+        model = FoodCategory
+        fields = (
+            "id",
+            "uid",
+            "name",
+            "logo",
+            "created_at",
+        )
+        read_only_fields = ("id", "uid", "created_at")
 
 
 class RestaurantAdminBranchSerializer(serializers.ModelSerializer):
@@ -197,6 +220,7 @@ class RestaurantAdminBranchSerializer(serializers.ModelSerializer):
         model = RestaurantBranches
         fields = (
             "id",
+            "uid",
             "restaurant",
             "name",
             "latitude",
@@ -212,7 +236,7 @@ class RestaurantAdminBranchSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "created_at", "updated_at")
+        read_only_fields = ("id", "uid", "created_at", "updated_at")
 
 
 class RestaurantAdminBranchAdminUserSerializer(serializers.ModelSerializer):
@@ -222,6 +246,7 @@ class RestaurantAdminBranchAdminUserSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             "id",
+            "uid",
             "email",
             "phone_number",
             "full_name",
@@ -231,7 +256,7 @@ class RestaurantAdminBranchAdminUserSerializer(serializers.ModelSerializer):
             "is_active",
             "role",
         )
-        read_only_fields = ("id", "role")
+        read_only_fields = ("id", "uid", "role")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -259,11 +284,10 @@ class RestaurantAdminBranchAdminUserSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"password": "Password is required."})
             if not self.initial_data.get("managed_branches"):
                 raise serializers.ValidationError({"managed_branches": "At least one branch is required."})
-        elif request and self.instance.pk == request.user.pk:
-            if "managed_branches" in data:
-                raise serializers.ValidationError(
-                    {"managed_branches": "You cannot update managed branches for yourself."}
-                )
+        elif request and self.instance.pk == request.user.pk and "managed_branches" in data:
+            raise serializers.ValidationError(
+                {"managed_branches": "You cannot update managed branches for yourself."}
+            )
         return data
 
     def create(self, validated_data):
@@ -312,6 +336,7 @@ class BranchAdminSelfSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             "id",
+            "uid",
             "email",
             "phone_number",
             "full_name",
@@ -319,7 +344,7 @@ class BranchAdminSelfSerializer(serializers.ModelSerializer):
             "is_active",
             "role",
         )
-        read_only_fields = ("id", "role")
+        read_only_fields = ("id", "uid", "role")
 
     def update(self, instance, validated_data):
         password = validated_data.pop("password", None)
@@ -333,10 +358,74 @@ class BranchAdminSelfSerializer(serializers.ModelSerializer):
         return instance
 
 
+class VehicleTypeSerializer(serializers.ModelSerializer):
+    user_uid = serializers.UUIDField(source="user.uid", read_only=True)
+
+    class Meta:
+        model = VehicleType
+        fields = (
+            "id",
+            "uid",
+            "user",
+            "user_uid",
+            "name",
+            "min_km",
+            "max_km",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "uid", "created_at", "updated_at", "user_uid")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["user"].queryset = User.objects.filter(role=User.RoleChoices.COURIER)
+
+    def validate(self, attrs):
+        min_km = attrs.get("min_km", getattr(self.instance, "min_km", None))
+        max_km = attrs.get("max_km", getattr(self.instance, "max_km", None))
+        user = attrs.get("user", getattr(self.instance, "user", None))
+
+        if min_km is not None and max_km is not None and max_km < min_km:
+            raise serializers.ValidationError({"max_km": "max_km must be greater than or equal to min_km."})
+
+        if user and user.role != User.RoleChoices.COURIER:
+            raise serializers.ValidationError({"user": "Vehicle type user must be a courier."})
+
+        return attrs
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    customer_uid = serializers.UUIDField(source="customer.uid", read_only=True)
+    courier_uid = serializers.UUIDField(source="courier.uid", read_only=True)
+    restaurant_uid = serializers.UUIDField(source="restaurant.uid", read_only=True)
+    branch_uid = serializers.UUIDField(source="branch.uid", read_only=True)
+
+    class Meta:
+        model = Order
+        fields = (
+            "id",
+            "uid",
+            "customer",
+            "customer_uid",
+            "courier",
+            "courier_uid",
+            "restaurant",
+            "restaurant_uid",
+            "branch",
+            "branch_uid",
+            "total_amount",
+            "status",
+            "note",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+
 class AdminFoodCategorySerializer(FoodCategorySerializer):
     def validate_branch(self, branch):
         allowed = self.context.get("allowed_branches")
-        if allowed is not None and not allowed.filter(pk=branch.pk).exists():
+        if branch and allowed is not None and not allowed.filter(pk=branch.pk).exists():
             raise serializers.ValidationError("Branch is not allowed.")
         return branch
 
@@ -344,7 +433,7 @@ class AdminFoodCategorySerializer(FoodCategorySerializer):
 class AdminFoodSerializer(FoodSerializer):
     def validate_category(self, category):
         allowed = self.context.get("allowed_branches")
-        if allowed is not None and not allowed.filter(pk=category.branch_id).exists():
+        if allowed is not None and category.branch_id and not allowed.filter(pk=category.branch_id).exists():
             raise serializers.ValidationError("Category is not allowed.")
         return category
 
@@ -369,7 +458,9 @@ class AdminFoodMenuBranchSerializer(FoodMenuBranchSerializer):
 
         if collection and not allowed.filter(pk=collection.branch_id).exists():
             raise serializers.ValidationError({"collection": "Collection is not allowed."})
-        if food and not allowed.filter(pk=food.category.branch_id).exists():
+
+        food_branch_id = food.category.branch_id if food and food.category_id else None
+        if food_branch_id and not allowed.filter(pk=food_branch_id).exists():
             raise serializers.ValidationError({"food": "Food is not allowed."})
 
         return data

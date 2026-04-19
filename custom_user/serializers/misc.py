@@ -7,8 +7,8 @@ User = get_user_model()
 class CustomUserSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
         model = User
-        fields = ("id", "email", "phone_number", "full_name", "profile_photo", 'notification', 'promotional_notification')
-        read_only_fields = ("id",)
+        fields = ("id", "uid", "courier_id", "email", "phone_number", "full_name", "profile_photo", 'notification', 'promotional_notification')
+        read_only_fields = ("id", "uid", "courier_id")
 
 
 class NotificationSettingsSerializer(serializers.Serializer):

@@ -1,6 +1,8 @@
+import uuid
 from django.contrib.auth.hashers import make_password
-from django.db import models
+from django.db import IntegrityError, models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.db.models import Max
 from django.utils import timezone
 
 
@@ -23,6 +25,8 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(phone_number, password, **extra_fields)
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
+    COURIER_ID_START = 835950
+
     class RoleChoices(models.TextChoices):
         SUPER_ADMIN = 'super_admin', 'super_admin'
         RESTAURANT_ADMIN = 'restaurant_admin', 'restaurant_admin'
@@ -30,6 +34,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         COURIER = 'courier', 'courier'
         USER = 'user', 'user'
 
+    uid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     email = models.EmailField(unique=True, null=True)
     phone_number = models.CharField(max_length=15, null=False, unique=True)
     full_name = models.CharField(max_length=30, null=True, blank=True)
@@ -43,6 +48,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     notification = models.BooleanField(default=False)
     promotional_notification = models.BooleanField(default=False)
     role = models.CharField(max_length=50, choices=RoleChoices, default=RoleChoices.SUPER_ADMIN)
+    courier_id = models.BigIntegerField(unique=True, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
@@ -69,7 +75,26 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def set_password(self, raw_password):
         self.password = make_password(raw_password)
 
+    @classmethod
+    def get_next_courier_id(cls):
+        max_value = cls.objects.filter(
+            role=cls.RoleChoices.COURIER,
+            courier_id__isnull=False,
+        ).aggregate(max_courier_id=Max("courier_id"))["max_courier_id"]
+        return (max_value or cls.COURIER_ID_START) + 1
+
+    def save(self, *args, **kwargs):
+        if self.role == self.RoleChoices.COURIER and not self.courier_id:
+            for _ in range(5):
+                self.courier_id = self.get_next_courier_id()
+                try:
+                    return super().save(*args, **kwargs)
+                except IntegrityError:
+                    self.courier_id = None
+            raise IntegrityError("Could not generate unique courier_id.")
+
+        super().save(*args, **kwargs)
+
     class Meta:
         verbose_name = "Admin"
         verbose_name_plural = "Admins"
-

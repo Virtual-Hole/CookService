@@ -1,14 +1,19 @@
+import uuid
 from django.db import models
 from restaurants.models import RestaurantBranches
 
 
 class FoodCategory(models.Model):
+    uid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     branch = models.ForeignKey(
         RestaurantBranches,
         on_delete=models.CASCADE,
-        related_name='food_categories'
+        related_name='food_categories',
+        null=True,
+        blank=True,
     )
     name = models.CharField(max_length=255)
+    logo = models.ImageField(upload_to='food_category_logos/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -17,10 +22,13 @@ class FoodCategory(models.Model):
         unique_together = ['branch', 'name']
 
     def __str__(self):
-        return f"{self.branch.name} - {self.name}"
+        if self.branch_id:
+            return f"{self.branch.name} - {self.name}"
+        return self.name
 
 
 class Food(models.Model):
+    uid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     name = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     image = models.ImageField(upload_to='foods/', blank=True, null=True)
@@ -57,10 +65,11 @@ class Food(models.Model):
 
     @property
     def branch(self):
-        return self.category.branch
+        return self.category.branch if self.category_id else None
 
 
 class FoodMenuBranchCollection(models.Model):
+    uid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     branch = models.ForeignKey(
         RestaurantBranches,
         on_delete=models.CASCADE,
@@ -81,6 +90,7 @@ class FoodMenuBranchCollection(models.Model):
 
 
 class FoodMenuBranch(models.Model):
+    uid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     food = models.ForeignKey(
         Food,
         on_delete=models.CASCADE,

@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.contrib.auth import get_user_model
 
@@ -5,6 +6,7 @@ User = get_user_model()
 
 
 class Address(models.Model):
+    uid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='addresses')
     lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, help_text="Latitude")
     long = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, help_text="Longitude")

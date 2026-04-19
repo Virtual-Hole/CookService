@@ -7,12 +7,15 @@ from admin_api.views import (
     SuperAdminBranchViewSet,
     SuperAdminCourierViewSet,
     SuperAdminFoodCategoryViewSet,
+    SuperAdminOrderViewSet,
     SuperAdminRestaurantAdminUserViewSet,
     SuperAdminRestaurantViewSet,
+    SuperAdminVehicleTypeViewSet,
     BranchAdminFoodCategoryViewSet,
     BranchAdminFoodViewSet,
     BranchAdminMenuBranchViewSet,
     BranchAdminMenuCollectionViewSet,
+    BranchAdminOrderViewSet,
     BranchAdminProfileView,
     RestaurantAdminBranchAdminUserViewSet,
     RestaurantAdminBranchViewSet,
@@ -20,6 +23,7 @@ from admin_api.views import (
     RestaurantAdminFoodViewSet,
     RestaurantAdminMenuBranchViewSet,
     RestaurantAdminMenuCollectionViewSet,
+    RestaurantAdminOrderViewSet,
     RestaurantAdminRestaurantViewSet,
 )
 
@@ -52,9 +56,19 @@ router.register(
     basename="super-admin-couriers",
 )
 router.register(
+    r"super/vehicle-types",
+    SuperAdminVehicleTypeViewSet,
+    basename="super-admin-vehicle-types",
+)
+router.register(
     r"super/food-categories",
     SuperAdminFoodCategoryViewSet,
     basename="super-admin-food-categories",
+)
+router.register(
+    r"super/orders",
+    SuperAdminOrderViewSet,
+    basename="super-admin-orders",
 )
 
 router.register(
@@ -92,6 +106,11 @@ router.register(
     RestaurantAdminMenuBranchViewSet,
     basename="restaurant-admin-menu-branches",
 )
+router.register(
+    r"restaurant/orders",
+    RestaurantAdminOrderViewSet,
+    basename="restaurant-admin-orders",
+)
 
 router.register(
     r"branch/branches",
@@ -117,6 +136,11 @@ router.register(
     r"branch/menu-branches",
     BranchAdminMenuBranchViewSet,
     basename="branch-admin-menu-branches",
+)
+router.register(
+    r"branch/orders",
+    BranchAdminOrderViewSet,
+    basename="branch-admin-orders",
 )
 
 

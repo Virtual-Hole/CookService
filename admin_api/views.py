@@ -1,15 +1,11 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Count, Q
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema, extend_schema_view
-
-from custom_user.pagination import CustomPageNumberPagination
-from custom_user.permissions import IsBranchAdmin, IsRestaurantAdmin, IsSuperAdmin
-from foods.models import Food, FoodCategory, FoodMenuBranch, FoodMenuBranchCollection
-from restaurants.models import Restaurants, RestaurantBranches
 
 from admin_api.serializers import (
     AdminFoodCategorySerializer,
@@ -17,14 +13,21 @@ from admin_api.serializers import (
     AdminFoodMenuBranchSerializer,
     AdminFoodSerializer,
     BranchAdminSelfSerializer,
+    OrderSerializer,
+    RestaurantAdminBranchAdminUserSerializer,
+    RestaurantAdminBranchSerializer,
+    RestaurantAdminRestaurantSerializer,
     SuperAdminCourierSerializer,
     SuperAdminFoodCategorySerializer,
     SuperAdminRestaurantAdminUserSerializer,
     SuperAdminRestaurantSerializer,
-    RestaurantAdminBranchAdminUserSerializer,
-    RestaurantAdminBranchSerializer,
-    RestaurantAdminRestaurantSerializer,
+    VehicleTypeSerializer,
 )
+from custom_user.models import VehicleType
+from custom_user.pagination import CustomPageNumberPagination
+from custom_user.permissions import IsBranchAdmin, IsRestaurantAdmin, IsSuperAdmin
+from foods.models import Food, FoodCategory, FoodMenuBranch, FoodMenuBranchCollection
+from restaurants.models import Order, Restaurants, RestaurantBranches
 
 
 User = get_user_model()
@@ -92,10 +95,40 @@ class SuperAdminBaseViewSet(viewsets.ModelViewSet):
     pagination_class = CustomPageNumberPagination
 
 
+class SuperAdminReadOnlyViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+    pagination_class = CustomPageNumberPagination
+
+
 @_tag_viewset("Super Admin - Restaurants")
 class SuperAdminRestaurantViewSet(SuperAdminBaseViewSet):
     serializer_class = SuperAdminRestaurantSerializer
     queryset = Restaurants.objects.all()
+
+    def get_queryset(self):
+        return Restaurants.objects.all().prefetch_related("admins")
+
+    @extend_schema(tags=["Super Admin - Restaurants"])
+    @action(detail=False, methods=["get"], url_path="without-admins")
+    def without_admins(self, request):
+        queryset = self.filter_queryset(
+            self.get_queryset()
+            .annotate(
+                restaurant_admin_count=Count(
+                    "admins",
+                    filter=Q(admins__role=User.RoleChoices.RESTAURANT_ADMIN),
+                )
+            )
+            .filter(restaurant_admin_count=0)
+        )
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @_tag_viewset("Super Admin - Branches")
@@ -110,7 +143,7 @@ class SuperAdminRestaurantAdminUserViewSet(SuperAdminBaseViewSet):
     queryset = User.objects.all()
 
     def get_queryset(self):
-        return User.objects.filter(role="restaurant_admin")
+        return User.objects.filter(role=User.RoleChoices.RESTAURANT_ADMIN)
 
 
 @_tag_viewset("Super Admin - Branch Admins")
@@ -119,7 +152,7 @@ class SuperAdminBranchAdminUserViewSet(SuperAdminBaseViewSet):
     queryset = User.objects.all()
 
     def get_queryset(self):
-        return User.objects.filter(role="branch_admin")
+        return User.objects.filter(role=User.RoleChoices.BRANCH_ADMIN)
 
 
 @_tag_viewset("Super Admin - Couriers")
@@ -131,10 +164,22 @@ class SuperAdminCourierViewSet(SuperAdminBaseViewSet):
         return User.objects.filter(role=User.RoleChoices.COURIER)
 
 
+@_tag_viewset("Super Admin - Vehicle Types")
+class SuperAdminVehicleTypeViewSet(SuperAdminBaseViewSet):
+    serializer_class = VehicleTypeSerializer
+    queryset = VehicleType.objects.select_related("user").all()
+
+
 @_tag_viewset("Super Admin - Food Categories")
 class SuperAdminFoodCategoryViewSet(SuperAdminBaseViewSet):
     serializer_class = SuperAdminFoodCategorySerializer
     queryset = FoodCategory.objects.all()
+
+
+@_tag_readonly_viewset("Super Admin - Orders")
+class SuperAdminOrderViewSet(SuperAdminReadOnlyViewSet):
+    serializer_class = OrderSerializer
+    queryset = Order.objects.select_related("customer", "courier", "restaurant", "branch").all()
 
 
 @_tag_viewset("Restaurant Admin - Branch Admins")
@@ -144,12 +189,12 @@ class RestaurantAdminBranchAdminUserViewSet(RestaurantAdminBaseViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role != "restaurant_admin":
+        if user.role != User.RoleChoices.RESTAURANT_ADMIN:
             return User.objects.none()
 
         allowed_branches = self.get_allowed_branches()
         return User.objects.filter(
-            Q(role="branch_admin", managed_branches__in=allowed_branches) | Q(pk=user.pk)
+            Q(role=User.RoleChoices.BRANCH_ADMIN, managed_branches__in=allowed_branches) | Q(pk=user.pk)
         ).distinct()
 
     def destroy(self, request, *args, **kwargs):
@@ -243,6 +288,17 @@ class RestaurantAdminMenuBranchViewSet(RestaurantAdminBaseViewSet):
         return FoodMenuBranch.objects.filter(collection__branch__in=self.get_allowed_branches())
 
 
+@_tag_readonly_viewset("Restaurant Admin - Orders")
+class RestaurantAdminOrderViewSet(RestaurantAdminReadOnlyViewSet):
+    serializer_class = OrderSerializer
+    queryset = Order.objects.select_related("customer", "courier", "restaurant", "branch").all()
+
+    def get_queryset(self):
+        return Order.objects.select_related("customer", "courier", "restaurant", "branch").filter(
+            restaurant__in=self.request.user.managed_restaurants.all()
+        )
+
+
 @extend_schema(tags=["Branch Admin - Profile"])
 class BranchAdminProfileView(generics.RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated, IsBranchAdmin]
@@ -302,3 +358,14 @@ class BranchAdminMenuBranchViewSet(BranchAdminBaseViewSet):
 
     def get_queryset(self):
         return FoodMenuBranch.objects.filter(collection__branch__in=self.get_allowed_branches())
+
+
+@_tag_readonly_viewset("Branch Admin - Orders")
+class BranchAdminOrderViewSet(BranchAdminReadOnlyViewSet):
+    serializer_class = OrderSerializer
+    queryset = Order.objects.select_related("customer", "courier", "restaurant", "branch").all()
+
+    def get_queryset(self):
+        return Order.objects.select_related("customer", "courier", "restaurant", "branch").filter(
+            branch__in=self.request.user.managed_branches.all()
+        )

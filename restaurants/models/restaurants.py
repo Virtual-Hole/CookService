@@ -1,3 +1,4 @@
+import uuid
 from django.core.validators import RegexValidator
 from django.db import models
 from django.contrib.auth import get_user_model
@@ -10,6 +11,7 @@ phone_regex = RegexValidator(
 )
 
 class Restaurants(models.Model):
+    uid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     name = models.CharField(max_length=255, db_index=True)
     logo = models.ImageField(upload_to='restaurant_logos/', null=True, blank=True)
     phone = models.CharField(max_length=13, validators=[phone_regex])
@@ -26,4 +28,3 @@ class Restaurants(models.Model):
 
     def __str__(self):
         return self.name
-

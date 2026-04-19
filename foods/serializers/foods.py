@@ -10,8 +10,8 @@ class FoodCategorySerializer(serializers.ModelSerializer):
     
     class Meta:
         model = FoodCategory
-        fields = ('id', 'branch', 'branch_name', 'name', 'created_at')
-        read_only_fields = ('id', 'created_at')
+        fields = ('id', 'uid', 'branch', 'branch_name', 'name', 'logo', 'created_at')
+        read_only_fields = ('id', 'uid', 'created_at')
 
 
 class FoodSerializer(serializers.ModelSerializer):
@@ -23,11 +23,11 @@ class FoodSerializer(serializers.ModelSerializer):
     class Meta:
         model = Food
         fields = (
-            'id', 'name', 'price', 'image', 'image_url', 'description',
+            'id', 'uid', 'name', 'price', 'image', 'image_url', 'description',
             'category', 'category_name', 'branch_name', 'discount_percent',
             'discount_active', 'discounted_price', 'created_at', 'updated_at'
         )
-        read_only_fields = ('id', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'uid', 'created_at', 'updated_at')
     
     @extend_schema_field(OpenApiTypes.URI)
     def get_image_url(self, obj):
@@ -44,8 +44,8 @@ class FoodMenuBranchCollectionSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = FoodMenuBranchCollection
-        fields = ('id', 'branch', 'branch_name', 'name', 'description', 'is_active', 'created_at')
-        read_only_fields = ('id', 'created_at')
+        fields = ('id', 'uid', 'branch', 'branch_name', 'name', 'description', 'is_active', 'created_at')
+        read_only_fields = ('id', 'uid', 'created_at')
 
 
 class FoodMenuBranchSerializer(serializers.ModelSerializer):
@@ -57,10 +57,10 @@ class FoodMenuBranchSerializer(serializers.ModelSerializer):
     class Meta:
         model = FoodMenuBranch
         fields = (
-            'id', 'food', 'food_name', 'food_price', 'food_image',
+            'id', 'uid', 'food', 'food_name', 'food_price', 'food_image',
             'collection', 'collection_name', 'is_available', 'added_at'
         )
-        read_only_fields = ('id', 'added_at')
+        read_only_fields = ('id', 'uid', 'added_at')
     
     @extend_schema_field(OpenApiTypes.URI)
     def get_food_image(self, obj):
@@ -75,7 +75,7 @@ class FoodMenuBranchSerializer(serializers.ModelSerializer):
 class FoodCategoryCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = FoodCategory
-        fields = ('branch', 'name')
+        fields = ('name', 'logo')
 
 
 class FoodCreateSerializer(serializers.ModelSerializer):
@@ -97,4 +97,3 @@ class FoodMenuBranchCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = FoodMenuBranch
         fields = ('food', 'collection', 'is_available')
-
