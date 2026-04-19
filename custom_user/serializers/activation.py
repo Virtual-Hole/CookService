@@ -1,11 +1,18 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from custom_user.phone import normalize_uz_phone
 
 User = get_user_model()
 
 class SendActivationCodeSerializer(serializers.Serializer):
     phone_number = serializers.CharField(required=True, max_length=15,
         help_text="Foydalanuvchi telefon raqami")
+
+    def validate_phone_number(self, value):
+        try:
+            return normalize_uz_phone(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
 
 class SendActivationCodeResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
@@ -24,9 +31,10 @@ class VerifyActivationCodeSerializer(serializers.Serializer):
     device_hardware = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def validate_phone_number(self, value):
-        if not value:
-            raise serializers.ValidationError("Phone number is required")
-        return value
+        try:
+            return normalize_uz_phone(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
 
     def validate_code(self, value):
         if not value.isdigit():

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from custom_user.phone import normalize_uz_phone
 
 User = get_user_model()
 
@@ -13,9 +14,14 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         fields = ('email', 'phone_number', 'full_name', 'password')
 
     def validate_phone_number(self, value):
-        if User.objects.filter(phone_number=value).exists():
+        try:
+            normalized = normalize_uz_phone(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
+
+        if User.objects.filter(phone_number=normalized).exists():
             raise serializers.ValidationError("Bu raqam allaqachon ro'yxatdan o'tgan")
-        return value
+        return normalized
 
     def create(self, validated_data):
         user = User.objects.create_user(
@@ -32,5 +38,4 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class UserRegistrationResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
-
 

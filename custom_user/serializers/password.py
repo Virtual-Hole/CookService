@@ -1,13 +1,15 @@
 from rest_framework import serializers
+from custom_user.phone import normalize_uz_phone
 
 
 class ForgotPasswordSerializer(serializers.Serializer):
     phone_number = serializers.CharField(required=True, max_length=15, help_text="User phone number")
 
     def validate_phone_number(self, value):
-        if not value:
-            raise serializers.ValidationError("Phone number is required")
-        return value
+        try:
+            return normalize_uz_phone(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
 
 
 class ForgotPasswordResponseSerializer(serializers.Serializer):

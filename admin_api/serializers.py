@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from custom_user.models import VehicleType
+from custom_user.phone import normalize_uz_phone
 from foods.models import FoodCategory
 from foods.serializers import (
     FoodCategorySerializer,
@@ -85,6 +86,12 @@ class SuperAdminRestaurantAdminUserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("At least one restaurant is required.")
         return value
 
+    def validate_phone_number(self, value):
+        try:
+            return normalize_uz_phone(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
+
     def validate(self, data):
         if self.instance is None:
             if not self.initial_data.get("password"):
@@ -160,6 +167,12 @@ class SuperAdminCourierSerializer(serializers.ModelSerializer):
         if self.instance is None and not self.initial_data.get("password"):
             raise serializers.ValidationError({"password": "Password is required."})
         return data
+
+    def validate_phone_number(self, value):
+        try:
+            return normalize_uz_phone(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
 
     def create(self, validated_data):
         branches = validated_data.pop("managed_branches", [])
@@ -277,6 +290,12 @@ class RestaurantAdminBranchAdminUserSerializer(serializers.ModelSerializer):
 
         return value
 
+    def validate_phone_number(self, value):
+        try:
+            return normalize_uz_phone(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
+
     def validate(self, data):
         request = self.context.get("request")
         if self.instance is None:
@@ -345,6 +364,12 @@ class BranchAdminSelfSerializer(serializers.ModelSerializer):
             "role",
         )
         read_only_fields = ("id", "uid", "role")
+
+    def validate_phone_number(self, value):
+        try:
+            return normalize_uz_phone(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
 
     def update(self, instance, validated_data):
         password = validated_data.pop("password", None)

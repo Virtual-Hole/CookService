@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from djoser.serializers import UserSerializer
 from django.contrib.auth import get_user_model
+from custom_user.phone import normalize_uz_phone
 
 User = get_user_model()
 
@@ -57,9 +58,10 @@ class VerifyCodeUniversalSerializer(serializers.Serializer):
         return value
 
     def validate_phone_number(self, value):
-        if not value:
-            raise serializers.ValidationError("Phone number is required")
-        return value
+        try:
+            return normalize_uz_phone(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
 
     def validate(self, data):
         if data['request_type'] == 'register':

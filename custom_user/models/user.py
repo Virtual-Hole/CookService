@@ -2,8 +2,11 @@ import uuid
 from django.contrib.auth.hashers import make_password
 from django.db import IntegrityError, models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.core.exceptions import ValidationError
 from django.db.models import Max
 from django.utils import timezone
+
+from custom_user.phone import normalize_uz_phone
 
 
 class CustomUserManager(BaseUserManager):
@@ -84,6 +87,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return (max_value or cls.COURIER_ID_START) + 1
 
     def save(self, *args, **kwargs):
+        if self.phone_number:
+            try:
+                self.phone_number = normalize_uz_phone(self.phone_number)
+            except ValueError as exc:
+                raise ValidationError({"phone_number": str(exc)})
+
         if self.role == self.RoleChoices.COURIER and not self.courier_id:
             for _ in range(5):
                 self.courier_id = self.get_next_courier_id()

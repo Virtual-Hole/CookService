@@ -15,6 +15,7 @@ from custom_user.serializers import (
     UserRegistrationResponseSerializer,
     ErrorResponseSerializer,
 )
+from custom_user.phone import normalize_uz_phone
 from custom_user.services import get_client_ip
 
 User = get_user_model()
@@ -40,7 +41,16 @@ class UserRegistrationView(APIView):
         description='Yangi user yaratish va email ga aktivatsiya kodi yuborish'
     )
     def post(self, request):
-        phone_number = request.data.get('phone_number')
+        raw_phone_number = request.data.get('phone_number')
+        phone_number = None
+        if raw_phone_number:
+            try:
+                phone_number = normalize_uz_phone(raw_phone_number)
+            except ValueError as exc:
+                return Response(
+                    {"success": False, 'error': str(exc), "errorStatus": "data_credential"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         ip_address = get_client_ip(request)
 
         if phone_number:
@@ -101,4 +111,3 @@ class UserRegistrationView(APIView):
         }
 
         return Response(response_data, status=status.HTTP_201_CREATED)
-
