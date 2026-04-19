@@ -22,6 +22,14 @@ jobs:
             git pull
             source venv/bin/activate
             pip install -r requirements.txt
+            if docker compose version >/dev/null 2>&1; then
+              sudo docker compose up -d redis
+            elif command -v docker-compose >/dev/null 2>&1; then
+              sudo docker-compose up -d redis
+            else
+              echo "Docker Compose topilmadi"
+              exit 1
+            fi
             python manage.py makemigrations
             python manage.py migrate
             sudo systemctl restart cook
