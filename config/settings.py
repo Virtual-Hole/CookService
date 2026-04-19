@@ -74,7 +74,7 @@ MIDDLEWARE = [
     'custom_user.middleware.RoleBasedRedirectMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = env_bool('CORS_ALLOW_ALL_ORIGINS', DEBUG)
+CORS_ALLOW_ALL_ORIGINS = env_bool('CORS_ALLOW_ALL_ORIGINS', True)
 CORS_ALLOWED_ORIGINS = env_list('CORS_ALLOWED_ORIGINS', '')
 CORS_ALLOW_CREDENTIALS = env_bool('CORS_ALLOW_CREDENTIALS', True)
 
