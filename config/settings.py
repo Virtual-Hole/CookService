@@ -74,9 +74,10 @@ MIDDLEWARE = [
     'custom_user.middleware.RoleBasedRedirectMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = env_bool('CORS_ALLOW_ALL_ORIGINS', True)
-CORS_ALLOWED_ORIGINS = env_list('CORS_ALLOWED_ORIGINS', '')
-CORS_ALLOW_CREDENTIALS = env_bool('CORS_ALLOW_CREDENTIALS', True)
+# Temporary open CORS for all origins during integration/testing.
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = []
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'config.urls'
 
