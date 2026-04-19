@@ -5,6 +5,8 @@ from admin_api.views import (
     BranchAdminBranchViewSet,
     SuperAdminBranchAdminUserViewSet,
     SuperAdminBranchViewSet,
+    SuperAdminCourierViewSet,
+    SuperAdminFoodCategoryViewSet,
     SuperAdminRestaurantAdminUserViewSet,
     SuperAdminRestaurantViewSet,
     BranchAdminFoodCategoryViewSet,
@@ -43,6 +45,16 @@ router.register(
     r"super/branch-admins",
     SuperAdminBranchAdminUserViewSet,
     basename="super-admin-branch-admins",
+)
+router.register(
+    r"super/couriers",
+    SuperAdminCourierViewSet,
+    basename="super-admin-couriers",
+)
+router.register(
+    r"super/food-categories",
+    SuperAdminFoodCategoryViewSet,
+    basename="super-admin-food-categories",
 )
 
 router.register(

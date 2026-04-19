@@ -11,6 +11,7 @@ urlpatterns = [
     path('verify/', VerifyCodeUniversalView.as_view(), name='verify-activation-code'),
     path('logout/', LogoutView.as_view(), name='user-logout'),
     path('login/', UserLoginView.as_view(), name='user-login'),
+    path('super-admin/login/', SuperAdminLoginView.as_view(), name='super-admin-login'),
     path("me/update_photo/", ProfilePhotoUpdateView.as_view(), name='update-photo'),
     path('me/notification/', NotificationSettingsView.as_view(), name='update_notification'),
 

@@ -23,3 +23,17 @@ class UserLoginResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
     login_response = TokenPairSerializer()
+
+
+class SuperAdminLoginSerializer(serializers.Serializer):
+    phone_number = serializers.CharField(required=True, max_length=15)
+    password = serializers.CharField(required=True, write_only=True, min_length=8)
+
+    def validate_phone_number(self, value):
+        if not value:
+            raise serializers.ValidationError("Phone number is required")
+        return value
+
+
+class SuperAdminLoginResponseSerializer(UserLoginResponseSerializer):
+    pass

@@ -121,6 +121,77 @@ class SuperAdminRestaurantAdminUserSerializer(serializers.ModelSerializer):
         return instance
 
 
+class SuperAdminCourierSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False, min_length=8)
+
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "email",
+            "phone_number",
+            "full_name",
+            "password",
+            "profile_photo",
+            "managed_branches",
+            "is_active",
+            "role",
+        )
+        read_only_fields = ("id", "role")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["managed_branches"].queryset = RestaurantBranches.objects.all()
+
+    def validate(self, data):
+        if self.instance is None:
+            if not self.initial_data.get("password"):
+                raise serializers.ValidationError({"password": "Password is required."})
+        return data
+
+    def create(self, validated_data):
+        branches = validated_data.pop("managed_branches", [])
+        password = validated_data.pop("password", None)
+        profile_photo = validated_data.pop("profile_photo", None)
+
+        user = User(
+            email=validated_data.get("email"),
+            phone_number=validated_data.get("phone_number"),
+            full_name=validated_data.get("full_name", ""),
+            is_active=validated_data.get("is_active", True),
+            role=User.RoleChoices.COURIER,
+            is_staff=False,
+        )
+        user.set_password(password)
+        if profile_photo:
+            user.profile_photo = profile_photo
+        user.save()
+        user.managed_branches.set(branches)
+        user.managed_restaurants.clear()
+        return user
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop("password", None)
+        branches = validated_data.pop("managed_branches", None)
+
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+
+        if password:
+            instance.set_password(password)
+        instance.save()
+
+        if branches is not None:
+            instance.managed_branches.set(branches)
+            instance.managed_restaurants.clear()
+
+        return instance
+
+
+class SuperAdminFoodCategorySerializer(FoodCategorySerializer):
+    pass
+
+
 class RestaurantAdminBranchSerializer(serializers.ModelSerializer):
     class Meta:
         model = RestaurantBranches

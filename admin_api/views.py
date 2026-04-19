@@ -17,6 +17,8 @@ from admin_api.serializers import (
     AdminFoodMenuBranchSerializer,
     AdminFoodSerializer,
     BranchAdminSelfSerializer,
+    SuperAdminCourierSerializer,
+    SuperAdminFoodCategorySerializer,
     SuperAdminRestaurantAdminUserSerializer,
     SuperAdminRestaurantSerializer,
     RestaurantAdminBranchAdminUserSerializer,
@@ -120,6 +122,21 @@ class SuperAdminBranchAdminUserViewSet(SuperAdminBaseViewSet):
         return User.objects.filter(role="branch_admin")
 
 
+@_tag_viewset("Super Admin - Couriers")
+class SuperAdminCourierViewSet(SuperAdminBaseViewSet):
+    serializer_class = SuperAdminCourierSerializer
+    queryset = User.objects.all()
+
+    def get_queryset(self):
+        return User.objects.filter(role=User.RoleChoices.COURIER)
+
+
+@_tag_viewset("Super Admin - Food Categories")
+class SuperAdminFoodCategoryViewSet(SuperAdminBaseViewSet):
+    serializer_class = SuperAdminFoodCategorySerializer
+    queryset = FoodCategory.objects.all()
+
+
 @_tag_viewset("Restaurant Admin - Branch Admins")
 class RestaurantAdminBranchAdminUserViewSet(RestaurantAdminBaseViewSet):
     serializer_class = RestaurantAdminBranchAdminUserSerializer
@@ -192,6 +209,12 @@ class RestaurantAdminFoodCategoryViewSet(RestaurantAdminBaseViewSet):
     def get_queryset(self):
         return FoodCategory.objects.filter(branch__in=self.get_allowed_branches())
 
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {"detail": "Only super admin can create food categories."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
 
 @_tag_viewset("Restaurant Admin - Foods")
 class RestaurantAdminFoodViewSet(RestaurantAdminBaseViewSet):
@@ -246,6 +269,12 @@ class BranchAdminFoodCategoryViewSet(BranchAdminBaseViewSet):
 
     def get_queryset(self):
         return FoodCategory.objects.filter(branch__in=self.get_allowed_branches())
+
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {"detail": "Only super admin can create food categories."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
 
 
 @_tag_viewset("Branch Admin - Foods")

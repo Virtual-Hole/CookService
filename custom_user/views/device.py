@@ -10,14 +10,14 @@ from custom_user.serializers import (
     DeviceSerializer,
     DeviceDeleteResponseSerializer,
 )
-from custom_user.permissions import IsUser, IsSuperAdmin
+from custom_user.permissions import IsUser
 from custom_user.models import Device
 from custom_user.utils import get_device_from_token
 from custom_user.pagination import CustomPageNumberPagination
 
 
 class DeviceDeleteView(APIView):
-    permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
+    permission_classes = [IsAuthenticated, IsUser]
 
     @extend_schema(
         responses={
@@ -95,7 +95,7 @@ class DeviceDeleteView(APIView):
             )
 
 class DeviceDeleteWithUidView(APIView):
-    permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
+    permission_classes = [IsAuthenticated, IsUser]
 
     def get_object(self, uid):
         try:
@@ -137,7 +137,7 @@ class DeviceDeleteWithUidView(APIView):
 
 
 class DeviceListView(ListAPIView):
-    permission_classes = [IsAuthenticated, (IsSuperAdmin | IsUser)]
+    permission_classes = [IsAuthenticated, IsUser]
     pagination_class = CustomPageNumberPagination
     serializer_class = DeviceSerializer
 
@@ -178,5 +178,4 @@ class DeviceListView(ListAPIView):
     )
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
-
 

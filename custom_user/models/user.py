@@ -27,6 +27,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         SUPER_ADMIN = 'super_admin', 'super_admin'
         RESTAURANT_ADMIN = 'restaurant_admin', 'restaurant_admin'
         BRANCH_ADMIN = 'branch_admin', 'branch_admin'
+        COURIER = 'courier', 'courier'
         USER = 'user', 'user'
 
     email = models.EmailField(unique=True, null=True)
@@ -71,5 +72,4 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     class Meta:
         verbose_name = "Admin"
         verbose_name_plural = "Admins"
-
 
