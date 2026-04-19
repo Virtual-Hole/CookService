@@ -21,6 +21,10 @@ jobs:
             cd /var/www/CookService
             git pull
             source venv/bin/activate
+            if [ ! -f .env ]; then
+              echo ".env file topilmadi: /var/www/CookService/.env"
+              exit 1
+            fi
             pip install -r requirements.txt
             if docker compose version >/dev/null 2>&1; then
               sudo docker compose up -d redis

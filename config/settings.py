@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from django.core.exceptions import ImproperlyConfigured
 
 from .jazzmin_settings import *
 
@@ -33,10 +32,6 @@ if not ALLOWED_HOSTS and DEBUG:
 CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS', '')
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 if not DEBUG:
-    if SECRET_KEY == 'unsafe-dev-secret-key':
-        raise ImproperlyConfigured('SECRET_KEY must be set when DEBUG=False')
-    if not ALLOWED_HOSTS:
-        raise ImproperlyConfigured('ALLOWED_HOSTS must be set when DEBUG=False')
     SESSION_COOKIE_SECURE = env_bool('SESSION_COOKIE_SECURE', True)
     CSRF_COOKIE_SECURE = env_bool('CSRF_COOKIE_SECURE', True)
 
