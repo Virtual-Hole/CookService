@@ -384,37 +384,25 @@ class BranchAdminSelfSerializer(serializers.ModelSerializer):
 
 
 class VehicleTypeSerializer(serializers.ModelSerializer):
-    user_uid = serializers.UUIDField(source="user.uid", read_only=True)
-
     class Meta:
         model = VehicleType
         fields = (
             "id",
             "uid",
-            "user",
-            "user_uid",
             "name",
             "min_km",
             "max_km",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "uid", "created_at", "updated_at", "user_uid")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["user"].queryset = User.objects.filter(role=User.RoleChoices.COURIER)
+        read_only_fields = ("id", "uid", "created_at", "updated_at")
 
     def validate(self, attrs):
         min_km = attrs.get("min_km", getattr(self.instance, "min_km", None))
         max_km = attrs.get("max_km", getattr(self.instance, "max_km", None))
-        user = attrs.get("user", getattr(self.instance, "user", None))
 
         if min_km is not None and max_km is not None and max_km < min_km:
             raise serializers.ValidationError({"max_km": "max_km must be greater than or equal to min_km."})
-
-        if user and user.role != User.RoleChoices.COURIER:
-            raise serializers.ValidationError({"user": "Vehicle type user must be a courier."})
 
         return attrs
 

@@ -40,3 +40,19 @@ class SuperAdminLoginSerializer(serializers.Serializer):
 
 class SuperAdminLoginResponseSerializer(UserLoginResponseSerializer):
     pass
+
+
+class RestaurantAdminLoginSerializer(SuperAdminLoginSerializer):
+    pass
+
+
+class RestaurantAdminLoginResponseSerializer(UserLoginResponseSerializer):
+    pass
+
+
+class BranchAdminLoginSerializer(SuperAdminLoginSerializer):
+    pass
+
+
+class BranchAdminLoginResponseSerializer(UserLoginResponseSerializer):
+    pass

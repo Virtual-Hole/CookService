@@ -167,7 +167,7 @@ class SuperAdminCourierViewSet(SuperAdminBaseViewSet):
 @_tag_viewset("Super Admin - Vehicle Types")
 class SuperAdminVehicleTypeViewSet(SuperAdminBaseViewSet):
     serializer_class = VehicleTypeSerializer
-    queryset = VehicleType.objects.select_related("user").all()
+    queryset = VehicleType.objects.all()
 
 
 @_tag_viewset("Super Admin - Food Categories")

@@ -8,7 +8,11 @@ from django.utils import timezone
 
 from custom_user.models import Device
 from custom_user.serializers import (
+    BranchAdminLoginResponseSerializer,
+    BranchAdminLoginSerializer,
     ErrorResponseSerializer,
+    RestaurantAdminLoginResponseSerializer,
+    RestaurantAdminLoginSerializer,
     SuperAdminLoginResponseSerializer,
     SuperAdminLoginSerializer,
     UserLoginSerializer,
@@ -50,6 +54,54 @@ def _save_device_session(request, user, device_hardware, tokens):
 
     device.last_online = timezone.now()
     device.save(update_fields=['last_online'])
+
+
+def _role_based_login(request, serializer_class, expected_role, forbidden_message, success_message):
+    serializer = serializer_class(data=request.data)
+
+    if not serializer.is_valid():
+        errors = serializer.errors
+        first_field = next(iter(errors))
+        error_msg = errors[first_field][0]
+        return _login_error_response(error_msg)
+
+    phone_number = serializer.validated_data['phone_number']
+    password = serializer.validated_data['password']
+
+    try:
+        user = User.objects.get(phone_number=phone_number)
+    except User.DoesNotExist:
+        return _login_error_response('Incorrect phone number or password.')
+
+    if not user.check_password(password):
+        return _login_error_response('Incorrect phone number or password.')
+
+    if user.role != expected_role:
+        return _login_error_response(
+            forbidden_message,
+            status_code=status.HTTP_403_FORBIDDEN,
+            error_status='forbidden',
+        )
+
+    if not user.is_active:
+        return _login_error_response(
+            'Account not activated.',
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_status='not_activated',
+        )
+
+    tokens = get_tokens_for_user(user)
+    return Response(
+        {
+            'success': True,
+            'message': success_message,
+            'login_response': {
+                'access': tokens['access'],
+                'refresh': tokens['refresh'],
+            }
+        },
+        status=status.HTTP_200_OK
+    )
 
 
 class UserLoginView(APIView):
@@ -97,6 +149,18 @@ class UserLoginView(APIView):
             if user.role == User.RoleChoices.SUPER_ADMIN:
                 return _login_error_response(
                     'Super admin must use super-admin login endpoint.',
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    error_status='forbidden',
+                )
+            if user.role == User.RoleChoices.RESTAURANT_ADMIN:
+                return _login_error_response(
+                    'Restaurant admin must use restaurant-admin login endpoint.',
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    error_status='forbidden',
+                )
+            if user.role == User.RoleChoices.BRANCH_ADMIN:
+                return _login_error_response(
+                    'Branch admin must use branch-admin login endpoint.',
                     status_code=status.HTTP_403_FORBIDDEN,
                     error_status='forbidden',
                 )
@@ -154,49 +218,84 @@ class SuperAdminLoginView(APIView):
         description='Faqat super admin uchun login endpoint'
     )
     def post(self, request):
-        serializer = SuperAdminLoginSerializer(data=request.data)
+        return _role_based_login(
+            request=request,
+            serializer_class=SuperAdminLoginSerializer,
+            expected_role=User.RoleChoices.SUPER_ADMIN,
+            forbidden_message='Only super admin can use this endpoint.',
+            success_message='Super admin login successful',
+        )
 
-        if not serializer.is_valid():
-            errors = serializer.errors
-            first_field = next(iter(errors))
-            error_msg = errors[first_field][0]
-            return _login_error_response(error_msg)
 
-        phone_number = serializer.validated_data['phone_number']
-        password = serializer.validated_data['password']
+class RestaurantAdminLoginView(APIView):
+    permission_classes = [AllowAny]
 
-        try:
-            user = User.objects.get(phone_number=phone_number)
-        except User.DoesNotExist:
-            return _login_error_response('Incorrect phone number or password.')
+    @extend_schema(
+        request=RestaurantAdminLoginSerializer,
+        responses={
+            200: OpenApiResponse(
+                response=RestaurantAdminLoginResponseSerializer,
+                description='Restaurant admin login muvaffaqiyatli'
+            ),
+            400: OpenApiResponse(
+                response=ErrorResponseSerializer,
+                description='Raqam yoki parol noto\'g\'ri'
+            ),
+            401: OpenApiResponse(
+                response=ErrorResponseSerializer,
+                description='Akkount aktivlashtirilmagan'
+            ),
+            403: OpenApiResponse(
+                response=ErrorResponseSerializer,
+                description='Foydalanuvchi restaurant admin emas'
+            ),
+        },
+        tags=['Authentication'],
+        summary='Restaurant admin login',
+        description='Faqat restaurant admin uchun login endpoint'
+    )
+    def post(self, request):
+        return _role_based_login(
+            request=request,
+            serializer_class=RestaurantAdminLoginSerializer,
+            expected_role=User.RoleChoices.RESTAURANT_ADMIN,
+            forbidden_message='Only restaurant admin can use this endpoint.',
+            success_message='Restaurant admin login successful',
+        )
 
-        if not user.check_password(password):
-            return _login_error_response('Incorrect phone number or password.')
 
-        if user.role != User.RoleChoices.SUPER_ADMIN:
-            return _login_error_response(
-                'Only super admin can use this endpoint.',
-                status_code=status.HTTP_403_FORBIDDEN,
-                error_status='forbidden',
-            )
+class BranchAdminLoginView(APIView):
+    permission_classes = [AllowAny]
 
-        if not user.is_active:
-            return _login_error_response(
-                'Account not activated.',
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                error_status='not_activated',
-            )
-
-        tokens = get_tokens_for_user(user)
-
-        return Response(
-            {
-                'success': True,
-                'message': 'Super admin login successful',
-                'login_response': {
-                    'access': tokens['access'],
-                    'refresh': tokens['refresh'],
-                }
-            },
-            status=status.HTTP_200_OK
+    @extend_schema(
+        request=BranchAdminLoginSerializer,
+        responses={
+            200: OpenApiResponse(
+                response=BranchAdminLoginResponseSerializer,
+                description='Branch admin login muvaffaqiyatli'
+            ),
+            400: OpenApiResponse(
+                response=ErrorResponseSerializer,
+                description='Raqam yoki parol noto\'g\'ri'
+            ),
+            401: OpenApiResponse(
+                response=ErrorResponseSerializer,
+                description='Akkount aktivlashtirilmagan'
+            ),
+            403: OpenApiResponse(
+                response=ErrorResponseSerializer,
+                description='Foydalanuvchi branch admin emas'
+            ),
+        },
+        tags=['Authentication'],
+        summary='Branch admin login',
+        description='Faqat branch admin uchun login endpoint'
+    )
+    def post(self, request):
+        return _role_based_login(
+            request=request,
+            serializer_class=BranchAdminLoginSerializer,
+            expected_role=User.RoleChoices.BRANCH_ADMIN,
+            forbidden_message='Only branch admin can use this endpoint.',
+            success_message='Branch admin login successful',
         )
